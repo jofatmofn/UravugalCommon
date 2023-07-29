@@ -10,5 +10,5 @@ public class RetrievePersonAttributesResponseVO {
 	byte[] photo;
 	String label;
 	List<AttributeValueVO> attributeValueVOList;
-
+	boolean isManageAccess;
 }

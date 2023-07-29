@@ -74,6 +74,8 @@ public class PersonRelationService {
 	
 	@Autowired
 	ServiceParts serviceParts;
+	@Autowired
+	ProjectUserService projectUserService;
 	
 	int maxLevel;
 	
@@ -621,8 +623,9 @@ public class PersonRelationService {
 		person = personRepository.findByIdAndTenant(entityId, SecurityContext.getCurrentTenant())
 				.orElseThrow(() -> new AppException("Invalid Person Id " + entityId, null));
 		retrievePersonAttributesResponseVO.setPhoto(person.getPhoto());
+		retrievePersonAttributesResponseVO.setManageAccess(isAuthorisedToManage(person));
 		attributeValueList = person.getAttributeValueList();
-		retrievePersonAttributesResponseVO.setAttributeValueVOList(attributeValuesEntityToVo(attributeValueList));
+		retrievePersonAttributesResponseVO.setAttributeValueVOList(attributeValuesEntityToVo(attributeValueList, !isAuthorisedToManage(person)));
 		
 		// Determine Label
 		gender = null;
@@ -645,6 +648,29 @@ public class PersonRelationService {
 		retrievePersonAttributesResponseVO.setLabel(label);
 		
 		return retrievePersonAttributesResponseVO;
+    }
+    
+    private boolean isAuthorisedToManage(Person person) {
+    	DomainValue domainValue;
+    	Optional<AttributeValue> attributeValueOpt;
+    	
+    	if (SecurityContext.getCurrentUser() == null) {
+    		return false;
+    	}
+    	
+    	if (!projectUserService.isAppReadOnly(SecurityContext.getCurrentTenant(), SecurityContext.getCurrentUser())) {
+    		return true;	// Is a creator or collaborator and hence has manage access to the entire tenant
+    	}
+    	
+    	domainValue = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_MANAGE_USER)
+				.orElseThrow(() -> new AppException("Invalid Attribute Value Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_MANAGE_USER, null));
+    	attributeValueOpt = getPersonAttribute(person, domainValue);
+    	if (attributeValueOpt.isPresent() && Long.parseLong(attributeValueOpt.get().getAttributeValue()) == SecurityContext.getCurrentUserId()) {
+			return true;	// The user has manage access to the person
+		} else {
+			return false;
+		}
+    	
     }
     
     public RetrieveRelationAttributesResponseVO retrieveRelationAttributes(long entityId) {
@@ -675,19 +701,19 @@ public class PersonRelationService {
     	
 		domainValue =  domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
 				.orElseThrow(() -> new AppException("Domain Value missing: " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
-    	attributeValue = attributeValueRepository.findByPersonAndAttribute(relation.getPerson1(), domainValue)
+    	attributeValue = getPersonAttribute(relation.getPerson1(), domainValue)
 				.orElseThrow(() -> new AppException("Gender missing for person " + relation.getPerson1().getId(), null));
     	retrieveRelationAttributesResponseVO.setPerson1GenderDVId(Long.valueOf(attributeValue.getAttributeValue()));
     	
-    	attributeValue = attributeValueRepository.findByPersonAndAttribute(relation.getPerson2(), domainValue)
+    	attributeValue = getPersonAttribute(relation.getPerson2(), domainValue)
 				.orElseThrow(() -> new AppException("Gender missing for person " + relation.getPerson2().getId(), null));
     	retrieveRelationAttributesResponseVO.setPerson2GenderDVId(Long.valueOf(attributeValue.getAttributeValue()));
     	
-    	retrieveRelationAttributesResponseVO.setAttributeValueVOList(attributeValuesEntityToVo(attributeValueList));
+    	retrieveRelationAttributesResponseVO.setAttributeValueVOList(attributeValuesEntityToVo(attributeValueList, false));
     	return retrieveRelationAttributesResponseVO;
     }
     
-    private List<AttributeValueVO> attributeValuesEntityToVo(List<AttributeValue> attributeValueList) {
+    private List<AttributeValueVO> attributeValuesEntityToVo(List<AttributeValue> attributeValueList, boolean isPublicOnly) {
     	List<AttributeValueVO> attributeValueVOList;
     	AttributeValueVO attributeValueVO;
     	DomainValueFlags domainValueFlags;
@@ -698,7 +724,7 @@ public class PersonRelationService {
     	for(AttributeValue attributeValue : attributeValueList) {
     		
     		domainValueFlags.setDomainValue(attributeValue.getAttribute());
-    		if (domainValueFlags.getIsInputAsAttribute()) {
+    		if (domainValueFlags.getIsInputAsAttribute() && (!attributeValue.isPrivate() || !isPublicOnly)) {
         		attributeValueVO = new AttributeValueVO();
         		attributeValueVOList.add(attributeValueVO);
         		attributeValueVO.setId(attributeValue.getId());
@@ -709,6 +735,7 @@ public class PersonRelationService {
         		attributeValueVO.setValueAccurate(attributeValue.isValueAccurate());
         		attributeValueVO.setStartDate(attributeValue.getStartDate());
         		attributeValueVO.setEndDate(attributeValue.getEndDate());
+        		attributeValueVO.setPrivate(attributeValue.isPrivate());
     		}
     	}
     	return attributeValueVOList;
@@ -730,6 +757,9 @@ public class PersonRelationService {
     	else {
     		person = personRepository.findByIdAndTenant(saveAttributesRequestVO.getEntityId(), SecurityContext.getCurrentTenant())
     				.orElseThrow(() -> new AppException("Invalid Person Id " + saveAttributesRequestVO.getEntityId(), null));
+        	if (!isAuthorisedToManage(person)) {
+        		throw new AppException("You are not authorised to modify this person", null);
+        	}
     	}
     	if (saveAttributesRequestVO.getPhoto() != null) {	// When no fresh upload (browse & open), don't update existing photo with null
     		person.setPhoto(saveAttributesRequestVO.getPhoto());
@@ -828,6 +858,7 @@ public class PersonRelationService {
     			
     			if (!Objects.equals(attributeValueVO.getAttributeValue(), attributeValue.getAttributeValue()) ||
     					!Objects.equals(attributeValueVO.isValueAccurate(), attributeValue.isValueAccurate()) ||
+    					!Objects.equals(attributeValueVO.isPrivate(), attributeValue.isPrivate()) ||
     					!UtilFuncs.dateEquals(attributeValueVO.getStartDate(), attributeValue.getStartDate()) ||
     					!UtilFuncs.dateEquals(attributeValueVO.getEndDate(), attributeValue.getEndDate())) {	// Modify Default-Lang
     				preModifyAttributeValue = new AttributeValue(attributeValue);
@@ -837,6 +868,7 @@ public class PersonRelationService {
     				attributeValue.setValueAccurate(attributeValueVO.isValueAccurate());
     				attributeValue.setStartDate(attributeValueVO.getStartDate());
     				attributeValue.setEndDate(attributeValueVO.getEndDate());
+    				attributeValue.setPrivate(attributeValueVO.isPrivate());
     				attributeValue.setSource(source);
     				attributeValueRepository.save(attributeValue);
     			}
@@ -884,6 +916,7 @@ public class PersonRelationService {
 		attributeValue.setValueAccurate(attributeValueVO.isValueAccurate());
 		attributeValue.setStartDate(attributeValueVO.getStartDate());
 		attributeValue.setEndDate(attributeValueVO.getEndDate());
+		attributeValue.setPrivate(attributeValueVO.isPrivate());
 		return attributeValueRepository.save(attributeValue);
     }
 
@@ -899,6 +932,7 @@ public class PersonRelationService {
     	DomainValueFlags domainValueFlags;
     	String attrVal, parentNamesSsv, spouseNamesSsv, childNamesSsv;
     	DomainValue domainValue;
+    	boolean isPublicOnly;
     	
     	attributeValueVOList = personSearchCriteriaVO.getAttributeValueVOList();
     	domainValueFlags = new DomainValueFlags();
@@ -970,11 +1004,12 @@ public class PersonRelationService {
     	searchResultsCount = 0;
     	
     	for(Person person : personList) {
+    		isPublicOnly = !isAuthorisedToManage(person);
     		searchResultsCount++;
     		personAttributesList = new ArrayList<String>();
     		searchResultsList.add(personAttributesList);
     		for (AttributeValue attributeValue : person.getAttributeValueList()) {
-    			if(serviceParts.isCurrentValidAttributeValue(attributeValue)) {
+    			if(serviceParts.isCurrentValidAttributeValue(attributeValue) && (!attributeValue.isPrivate() || !isPublicOnly)) {
     				domainValueFlags.setDomainValue(attributeValue.getAttribute());
     				if (domainValueFlags.getAttributeDomain() == null || domainValueFlags.getAttributeDomain().equals("")) {
     					attrVal = attributeValue.getAvValue();
@@ -1149,7 +1184,7 @@ public class PersonRelationService {
     				.orElseThrow(() -> new AppException("Invalid Person Id " + personId, null));
 			attributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
 					.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
-			genderAv = attributeValueRepository.findByPersonAndAttribute(person, attributeDv)
+			genderAv = getPersonAttribute(person, attributeDv)
 					.orElseThrow(() -> new AppException("Invalid gender for " + personId, null));
 			gendersOfPersonsList.add(genderAv.getAttributeValue());
     	}
@@ -1195,7 +1230,7 @@ public class PersonRelationService {
 		if (saveRelationRequestVO.getPerson1ForPerson2().equals(Constants.RELATION_NAME_MOTHER) || saveRelationRequestVO.getPerson1ForPerson2().equals(Constants.RELATION_NAME_FATHER)) {
 			attributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
 					.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
-			genderAv = attributeValueRepository.findByPersonAndAttribute(person2, attributeDv)
+			genderAv = getPersonAttribute(person2, attributeDv)
 					.orElseThrow(() -> new AppException("Invalid gender for " + saveRelationRequestVO.getPerson2Id(), null));
 			if (genderAv.getAttributeValue().equals(Constants.GENDER_NAME_MALE)) {
 				attributeValue2.setAttributeValue(Constants.RELATION_NAME_SON);
@@ -1385,7 +1420,7 @@ public class PersonRelationService {
 	    	    		}
 	    	    		genderAttributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
 	    						.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
-	    				genderAv = attributeValueRepository.findByPersonAndAttribute(person.get(), genderAttributeDv)
+	    				genderAv = getPersonAttribute(person.get(), genderAttributeDv)
 	    						.orElseThrow(() -> new AppException("Invalid gender", null));
 	    	    		currentGender = genderAv.getAttributeValue();
     		    	}
@@ -1594,7 +1629,7 @@ public class PersonRelationService {
 	    	} catch(NumberFormatException nfe) {
 	    		person = referenceIdMap.get(personAttributeValuesArr[1]);
 	    	}
-			genderAv = attributeValueRepository.findByPersonAndAttribute(person, genderPersAttributeDv)
+			genderAv = getPersonAttribute(person, genderPersAttributeDv)
 					.orElseThrow(() -> new AppException("Invalid gender", null));
 	    	
 			isMale = false;
@@ -1615,7 +1650,7 @@ public class PersonRelationService {
     			} else {
     				person = femalePersonList.get(level);
     			}
-    			genderAv = attributeValueRepository.findByPersonAndAttribute(person, genderPersAttributeDv)
+    			genderAv = getPersonAttribute(person, genderPersAttributeDv)
     					.orElseThrow(() -> new AppException("Invalid gender", null));
     		} else {
         		person = new Person(source);
@@ -1698,16 +1733,17 @@ public class PersonRelationService {
 		}
     }
     
-    public void importPrData2(Iterable<CSVRecord> csvRecords) {
+    private Optional<AttributeValue> getPersonAttribute(Person person, DomainValue persAttributeDv) {
     	DomainValueFlags domainValueFlags;
-    	domainValueFlags = new DomainValueFlags();
-    	for (AttributeValue av : attributeValueRepository.findAll()) {
-			domainValueFlags.setDomainValue(av.getAttribute());
-			if (Objects.equals(domainValueFlags.getValidationJsRegEx(), Constants.TRANSLATABLE_REGEX)) {
-				av.setNormalisedValue("dummy");
-				attributeValueRepository.save(av);
-			}
-		}
+    	domainValueFlags = new DomainValueFlags(persAttributeDv);
+    	for (AttributeValue av : person.getAttributeValueList()) {
+    		if (av.getAttribute().equals(persAttributeDv) &&
+    				(domainValueFlags.getRepetitionType().equals(Constants.FLAG_ATTRIBUTE_REPETITION_NOT_ALLOWED) ||
+    				serviceParts.isCurrentValidAttributeValue(av))) {
+    			return Optional.of(av); // TODO: In case of FLAG_ATTRIBUTE_REPETITION_OVERLAPPING_ALLOWED, this returns only the first, not the list!
+    		}
+    	}
+    	return Optional.empty();
     }
     
     // Classes that can be avoided with JavaTuples

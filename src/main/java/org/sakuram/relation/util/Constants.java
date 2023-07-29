@@ -19,6 +19,7 @@ public class Constants {
 	public static final long PERSON_ATTRIBUTE_DV_ID_GENDER = 19;
 	public static final long PERSON_ATTRIBUTE_DV_ID_FIRST_NAME = 20;
 	public static final long PERSON_ATTRIBUTE_DV_ID_SUR_NAME = 22;
+	public static final long PERSON_ATTRIBUTE_DV_ID_MANAGE_USER = 353;
 	public static final long RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2 = 34;
 	public static final long RELATION_ATTRIBUTE_DV_ID_PERSON2_FOR_PERSON1 = 35;
 	public static final long RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON1_FOR_PERSON2 = 61;

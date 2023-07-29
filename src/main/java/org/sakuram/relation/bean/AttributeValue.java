@@ -21,6 +21,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
@@ -113,6 +114,10 @@ public class AttributeValue {
 	@OneToMany(mappedBy = "attributeValue", cascade = CascadeType.ALL)
 	private List<Translation> translationList;
 
+	@Column(name="is_private", nullable=false)
+	@ColumnDefault("false")
+	private boolean isPrivate;
+	
 	@Transient
 	private Translation translation;
 
