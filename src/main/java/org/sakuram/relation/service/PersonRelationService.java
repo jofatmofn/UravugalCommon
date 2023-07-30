@@ -607,6 +607,7 @@ public class PersonRelationService {
     		domainValueVO.setIsInputMandatory(domainValueFlags.getIsInputMandatory());
     		domainValueVO.setValidationJsRegEx(domainValueFlags.getValidationJsRegEx());
     		domainValueVO.setLanguageCode(domainValueFlags.getLanguageCode());
+    		domainValueVO.setPrivacyRestrictionType(domainValueFlags.getPrivacyRestrictionType());
     	}
     	
     	return domainValueVOList;
@@ -673,6 +674,17 @@ public class PersonRelationService {
     	
     }
     
+    private boolean isPrivateAttributeValue(AttributeValue attributeValue, String privacyRestrictionType) {
+    	switch(privacyRestrictionType) {
+    	case Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_PUBLIC_ONLY:
+    		return false;
+    	case Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_PRIVATE_ONLY:
+    		return true;
+    	default: // Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE:
+    		return attributeValue.getIsPrivate();
+    	}
+    }
+    
     public RetrieveRelationAttributesResponseVO retrieveRelationAttributes(long entityId) {
     	Relation relation;
     	List<AttributeValue> attributeValueList;
@@ -724,7 +736,7 @@ public class PersonRelationService {
     	for(AttributeValue attributeValue : attributeValueList) {
     		
     		domainValueFlags.setDomainValue(attributeValue.getAttribute());
-    		if (domainValueFlags.getIsInputAsAttribute() && (!attributeValue.isPrivate() || !isPublicOnly)) {
+    		if (domainValueFlags.getIsInputAsAttribute() && (!isPrivateAttributeValue(attributeValue, domainValueFlags.getPrivacyRestrictionType()) || !isPublicOnly)) {
         		attributeValueVO = new AttributeValueVO();
         		attributeValueVOList.add(attributeValueVO);
         		attributeValueVO.setId(attributeValue.getId());
@@ -735,7 +747,9 @@ public class PersonRelationService {
         		attributeValueVO.setValueAccurate(attributeValue.isValueAccurate());
         		attributeValueVO.setStartDate(attributeValue.getStartDate());
         		attributeValueVO.setEndDate(attributeValue.getEndDate());
-        		attributeValueVO.setPrivate(attributeValue.isPrivate());
+				if (domainValueFlags.getPrivacyRestrictionType().equals(Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE)) {
+					attributeValueVO.setIsPrivate(attributeValue.getIsPrivate());
+				}
     		}
     	}
     	return attributeValueVOList;
@@ -835,6 +849,10 @@ public class PersonRelationService {
     		attributeDv = domainValueRepository.findById(attributeValueVO.getAttributeDvId())
     				.orElseThrow(() -> new AppException("Invalid Attribute " + attributeValueVO.getAttributeDvId(), null));
     		domainValueFlags.setDomainValue(attributeDv);
+			if (domainValueFlags.getPrivacyRestrictionType().equals(Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE) &&
+					attributeValueVO.getIsPrivate() == null) {
+				attributeValueVO.setIsPrivate(false);
+			}
     		if (attributeValueVO.getId() < 1) {	// Insert New AV
     			insertedAttributeValue = insertAttributeValue(attributeValueVO, person, relation, source);
     			insertedAttributeValueIdList.add(insertedAttributeValue.getId());
@@ -858,7 +876,7 @@ public class PersonRelationService {
     			
     			if (!Objects.equals(attributeValueVO.getAttributeValue(), attributeValue.getAttributeValue()) ||
     					!Objects.equals(attributeValueVO.isValueAccurate(), attributeValue.isValueAccurate()) ||
-    					!Objects.equals(attributeValueVO.isPrivate(), attributeValue.isPrivate()) ||
+    					!Objects.equals(attributeValueVO.getIsPrivate(), isPrivateAttributeValue(attributeValue, domainValueFlags.getPrivacyRestrictionType())) ||
     					!UtilFuncs.dateEquals(attributeValueVO.getStartDate(), attributeValue.getStartDate()) ||
     					!UtilFuncs.dateEquals(attributeValueVO.getEndDate(), attributeValue.getEndDate())) {	// Modify Default-Lang
     				preModifyAttributeValue = new AttributeValue(attributeValue);
@@ -868,7 +886,9 @@ public class PersonRelationService {
     				attributeValue.setValueAccurate(attributeValueVO.isValueAccurate());
     				attributeValue.setStartDate(attributeValueVO.getStartDate());
     				attributeValue.setEndDate(attributeValueVO.getEndDate());
-    				attributeValue.setPrivate(attributeValueVO.isPrivate());
+    				if (domainValueFlags.getPrivacyRestrictionType().equals(Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE)) {
+    					attributeValue.setIsPrivate(attributeValueVO.getIsPrivate());
+    				}
     				attributeValue.setSource(source);
     				attributeValueRepository.save(attributeValue);
     			}
@@ -905,10 +925,12 @@ public class PersonRelationService {
     private AttributeValue insertAttributeValue(AttributeValueVO attributeValueVO, Person person, Relation relation, Person source) {
     	AttributeValue attributeValue;
     	DomainValue attributeDv;
+    	DomainValueFlags domainValueFlags;
     	
     	attributeValue = new AttributeValue(source);
 		attributeDv = domainValueRepository.findById(attributeValueVO.getAttributeDvId())
 				.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + attributeValueVO.getAttributeDvId(), null));
+    	domainValueFlags = new DomainValueFlags(attributeDv);
 		attributeValue.setAttribute(attributeDv);
 		attributeValue.setAttributeValue(attributeValueVO.getAttributeValue());
 		attributeValue.setPerson(person);
@@ -916,7 +938,9 @@ public class PersonRelationService {
 		attributeValue.setValueAccurate(attributeValueVO.isValueAccurate());
 		attributeValue.setStartDate(attributeValueVO.getStartDate());
 		attributeValue.setEndDate(attributeValueVO.getEndDate());
-		attributeValue.setPrivate(attributeValueVO.isPrivate());
+		if (domainValueFlags.getPrivacyRestrictionType().equals(Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE)) {
+			attributeValue.setIsPrivate(attributeValueVO.getIsPrivate());
+		}
 		return attributeValueRepository.save(attributeValue);
     }
 
@@ -1009,8 +1033,8 @@ public class PersonRelationService {
     		personAttributesList = new ArrayList<String>();
     		searchResultsList.add(personAttributesList);
     		for (AttributeValue attributeValue : person.getAttributeValueList()) {
-    			if(serviceParts.isCurrentValidAttributeValue(attributeValue) && (!attributeValue.isPrivate() || !isPublicOnly)) {
-    				domainValueFlags.setDomainValue(attributeValue.getAttribute());
+				domainValueFlags.setDomainValue(attributeValue.getAttribute());
+    			if(serviceParts.isCurrentValidAttributeValue(attributeValue) && (!isPrivateAttributeValue(attributeValue, domainValueFlags.getPrivacyRestrictionType()) || !isPublicOnly)) {
     				if (domainValueFlags.getAttributeDomain() == null || domainValueFlags.getAttributeDomain().equals("")) {
     					attrVal = attributeValue.getAvValue();
     				}

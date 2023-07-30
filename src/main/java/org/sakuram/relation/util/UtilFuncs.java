@@ -157,10 +157,4 @@ public class UtilFuncs {
     	}
     	return outList;
     }
-    
-    public static void main(String[] args) throws IOException {
-    	for (String alternative : normaliseForSearch("Giridhara Gopalakrishnan")) {
-    		System.out.println(alternative);
-    	}
-    }
 }

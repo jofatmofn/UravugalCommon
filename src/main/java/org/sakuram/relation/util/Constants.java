@@ -79,6 +79,9 @@ public class Constants {
 	public static final String FLAG_ATTRIBUTE_REPETITION_NOT_ALLOWED = "NA";
 	public static final String FLAG_ATTRIBUTE_REPETITION_OVERLAPPING_ALLOWED = "OA";
 	public static final String FLAG_ATTRIBUTE_REPETITION_NON_OVERLAPPING_ALLOWED = "NOA";
+	public static final String FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_PUBLIC_ONLY = "PB";
+	public static final String FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_PRIVATE_ONLY = "PR";
+	public static final String FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE = "BR";
 
 	public static final int FLAG_POSITION_RELATION_GROUP = 0;
 	public static final int FLAG_POSITION_INPUT_AS_ATTRIBUTE = 0;
@@ -86,7 +89,8 @@ public class Constants {
 	public static final int FLAG_POSITION_DOMAIN = 2;
 	public static final int FLAG_POSITION_INPUT_MANDATORY = 3;
 	public static final int FLAG_POSITION_VALIDATION_JS_REG_EX = 4;
-	public static final int FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP = 5;
+	public static final int FLAG_POSITION_PRIVACY_RESTRICTION = 5;
+	public static final int FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP = 6;
 	public static final int FLAG_POSITION_ISO_LANGUAGE_CODE = 0;
 
 	public static final String EDGE_TYPE_DIRECT_RELATION = "line";

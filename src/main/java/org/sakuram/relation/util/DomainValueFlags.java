@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter @Setter
 @NoArgsConstructor
 public class DomainValueFlags {
-	private String attributeDomain, repetitionType, validationJsRegEx, languageCode, relationGroup;
+	private String attributeDomain, repetitionType, validationJsRegEx, languageCode, relationGroup, privacyRestrictionType;
 	private Boolean isInputAsAttribute, isInputMandatory, isTranslatable;
 	
 	public DomainValueFlags(DomainValue domainValue) {
@@ -26,6 +26,7 @@ public class DomainValueFlags {
 		isInputAsAttribute = null;
 		isInputMandatory = null;
 		isTranslatable = null;
+		privacyRestrictionType = null;
 		
 		if (domainValue.getFlagsCsv() != null && !domainValue.getFlagsCsv().equals("")) {
 			flagsArr = domainValue.getFlagsCsv().split(Constants.CSV_SEPARATOR);
@@ -56,6 +57,9 @@ public class DomainValueFlags {
 				if (validationJsRegEx.equals(Constants.TRANSLATABLE_REGEX)) {
 					isTranslatable = true;
 				}
+			}
+			if (flagsArr.length > Constants.FLAG_POSITION_PRIVACY_RESTRICTION) {
+				privacyRestrictionType = flagsArr[Constants.FLAG_POSITION_PRIVACY_RESTRICTION];
 			}
 			if (domainValue.getCategory().equals(Constants.CATEGORY_RELATION_ATTRIBUTE) && flagsArr.length > Constants.FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP) {
 				relationGroup = flagsArr[Constants.FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP];

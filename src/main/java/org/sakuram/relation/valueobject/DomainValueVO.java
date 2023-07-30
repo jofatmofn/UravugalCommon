@@ -15,5 +15,6 @@ public class DomainValueVO {
 	private Boolean isInputMandatory;
 	private String validationJsRegEx;
 	private String languageCode;
+	private String privacyRestrictionType;
 
 }
