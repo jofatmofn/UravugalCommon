@@ -13,7 +13,7 @@ public class AttributeValueVO {
 	private String attributeName;
 	private String attributeValue;
 	private String translatedValue;
-	private boolean isValueAccurate;
+	private boolean isValueApproximate;
 	private Date startDate;
 	private Date endDate;
 	private Boolean isPrivate;

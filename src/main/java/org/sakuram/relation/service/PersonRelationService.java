@@ -674,7 +674,7 @@ public class PersonRelationService {
     	
     }
     
-    private boolean isPrivateAttributeValue(AttributeValue attributeValue, String privacyRestrictionType) {
+    private Boolean isPrivateAttributeValue(AttributeValue attributeValue, String privacyRestrictionType) {
     	switch(privacyRestrictionType) {
     	case Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_PUBLIC_ONLY:
     		return false;
@@ -744,7 +744,7 @@ public class PersonRelationService {
         		attributeValueVO.setAttributeName(attributeValue.getAttribute().getDvValue());
         		attributeValueVO.setAttributeValue(attributeValue.getAttributeValue());
         		attributeValueVO.setTranslatedValue(attributeValue.getTranslation() == null ? null : attributeValue.getTranslation().getValue());
-        		attributeValueVO.setValueAccurate(attributeValue.isValueAccurate());
+        		attributeValueVO.setValueApproximate(attributeValue.isValueApproximate());
         		attributeValueVO.setStartDate(attributeValue.getStartDate());
         		attributeValueVO.setEndDate(attributeValue.getEndDate());
 				if (domainValueFlags.getPrivacyRestrictionType().equals(Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE)) {
@@ -875,7 +875,7 @@ public class PersonRelationService {
     			}
     			
     			if (!Objects.equals(attributeValueVO.getAttributeValue(), attributeValue.getAttributeValue()) ||
-    					!Objects.equals(attributeValueVO.isValueAccurate(), attributeValue.isValueAccurate()) ||
+    					!Objects.equals(attributeValueVO.isValueApproximate(), attributeValue.isValueApproximate()) ||
     					!Objects.equals(attributeValueVO.getIsPrivate(), isPrivateAttributeValue(attributeValue, domainValueFlags.getPrivacyRestrictionType())) ||
     					!UtilFuncs.dateEquals(attributeValueVO.getStartDate(), attributeValue.getStartDate()) ||
     					!UtilFuncs.dateEquals(attributeValueVO.getEndDate(), attributeValue.getEndDate())) {	// Modify Default-Lang
@@ -883,7 +883,7 @@ public class PersonRelationService {
     				preModifyAttributeValue.setOverwrittenBy(attributeValue);
     				attributeValueRepository.save(preModifyAttributeValue);
     				attributeValue.setAttributeValue(attributeValueVO.getAttributeValue());
-    				attributeValue.setValueAccurate(attributeValueVO.isValueAccurate());
+    				attributeValue.setValueApproximate(attributeValueVO.isValueApproximate());
     				attributeValue.setStartDate(attributeValueVO.getStartDate());
     				attributeValue.setEndDate(attributeValueVO.getEndDate());
     				if (domainValueFlags.getPrivacyRestrictionType().equals(Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE)) {
@@ -935,7 +935,7 @@ public class PersonRelationService {
 		attributeValue.setAttributeValue(attributeValueVO.getAttributeValue());
 		attributeValue.setPerson(person);
 		attributeValue.setRelation(relation);
-		attributeValue.setValueAccurate(attributeValueVO.isValueAccurate());
+		attributeValue.setValueApproximate(attributeValueVO.isValueApproximate());
 		attributeValue.setStartDate(attributeValueVO.getStartDate());
 		attributeValue.setEndDate(attributeValueVO.getEndDate());
 		if (domainValueFlags.getPrivacyRestrictionType().equals(Constants.FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE)) {

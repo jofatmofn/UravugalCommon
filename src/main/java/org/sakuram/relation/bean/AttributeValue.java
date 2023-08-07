@@ -73,8 +73,8 @@ public class AttributeValue {
 	@Column(name="normalised_value", nullable=true)		// For Search purpose, applicable to free-text values
 	private String normalisedValue;
 	
-	@Column(name="is_value_accurate", nullable=false)
-	private boolean isValueAccurate;
+	@Column(name="is_value_approximate", nullable=false)
+	private boolean isValueApproximate;
 	
 	@Column(name="start_date", nullable=true)
 	private Date startDate;
@@ -142,7 +142,7 @@ public class AttributeValue {
 		this.attributeValue = attributeValue.attributeValue;
 		this.creator = SecurityContext.getCurrentUser();
 		this.endDate = attributeValue.endDate;
-		this.isValueAccurate = attributeValue.isValueAccurate;
+		this.isValueApproximate = attributeValue.isValueApproximate;
 		this.person = attributeValue.person;
 		this.relation = attributeValue.relation;
 		this.startDate = attributeValue.startDate;
