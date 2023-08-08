@@ -1637,6 +1637,7 @@ public class PersonRelationService {
     	ParsedCellContentVO parsedCellContentVO;
     	Double sequenceNo;
     	boolean isMale;
+    	List<AttributeValue> attributeValueList;
     	
 		personAttributeValuesArr = cellContents.split("#", -1);
 		
@@ -1683,16 +1684,23 @@ public class PersonRelationService {
         			referenceIdMap.put(personAttributeValuesArr[4], person);
         		}
         		
+        		attributeValueList = new ArrayList<AttributeValue>(3);
+        		
 	    		attributeValue = new AttributeValue(firstNamePersAttributeDv, personAttributeValuesArr[1], person, null, source);
 	    		attributeValueRepository.save(attributeValue);
+	    		attributeValueList.add(attributeValue);
 	    		
 	        	genderAv = new AttributeValue(genderPersAttributeDv, isMale? Constants.GENDER_NAME_MALE : Constants.GENDER_NAME_FEMALE, person, null, source);
 	    		attributeValueRepository.save(genderAv);
+	    		attributeValueList.add(genderAv);
 	    		
 	    		if (!personAttributeValuesArr[3].equals("")) {
 		    		attributeValue = new AttributeValue(labelPersAttributeDv, personAttributeValuesArr[3], person, null, source);
 		    		attributeValueRepository.save(attributeValue);
+		    		attributeValueList.add(attributeValue);
 	    		}
+	    		person.setAttributeValueList(attributeValueList);	// Later retrieval of attributeValueList from referenceIdMap's person will otherwise be NULL
+	    															// Before introduction of getPersonAttribute method, this last was obtained from repository
     		}
     	}
     	
