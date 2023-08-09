@@ -972,11 +972,11 @@ public class PersonRelationService {
 	    		querySB.append(" AND ");
 	    		querySB.append(buildQueryOneAv(attributeValueVO.getAttributeDvId(), attributeValueVO.getAttributeValue(), personSearchCriteriaVO.isLenient(), "person_fk = p.id"));
     		}
-    		else if (attributeValueVO.getAttributeDvId() == -1) {
+    		else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_PERSON_ID) {
 	    		querySB.append(" AND p.id = ");
 	    		querySB.append(attributeValueVO.getAttributeValue());
     		}
-    		else if (attributeValueVO.getAttributeDvId() == -2) {
+    		else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_PARENTS) {
     			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_2_fk = p.id AND ((");
 	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_FATHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
 	    		querySB.append(" ) OR (");
@@ -985,7 +985,7 @@ public class PersonRelationService {
 	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_1_fk"));
 	    		querySB.append("))");
     		}
-    		else if (attributeValueVO.getAttributeDvId() == -3) {
+    		else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_SPOUSES) {
     			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_1_fk = p.id AND ");
 	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_HUSBAND, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
 	    		querySB.append(" AND ");
@@ -996,7 +996,7 @@ public class PersonRelationService {
 	    		querySB.append(" AND ");
 	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_1_fk"));
 	    		querySB.append("))");
-    		} else if (attributeValueVO.getAttributeDvId() == -4) {
+    		} else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_CHILDREN) {
     			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_1_fk = p.id AND ((");
 	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_FATHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
 	    		querySB.append(" ) OR (");
@@ -1004,6 +1004,18 @@ public class PersonRelationService {
 	    		querySB.append(" )) AND ");
 	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_2_fk"));
 	    		querySB.append("))");
+    		} else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_SIBLINGS) {
+    			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_2_fk = p.id AND ((");
+	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_FATHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
+	    		querySB.append(" ) OR (");
+	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_MOTHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
+	    		querySB.append(" )) AND (EXISTS (SELECT 1 FROM relation r2 WHERE r2.person_1_fk = r.person_1_fk AND r2.person_2_fk <> p.id AND ((");
+	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_FATHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r2.id"));
+	    		querySB.append(" ) OR (");
+	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_MOTHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r2.id"));
+	    		querySB.append(" )) AND ");
+	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r2.person_2_fk"));
+	    		querySB.append("))))");
     		}
     	}
 		querySB.append(" ORDER BY p.id;");
