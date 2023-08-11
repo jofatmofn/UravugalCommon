@@ -977,45 +977,33 @@ public class PersonRelationService {
 	    		querySB.append(attributeValueVO.getAttributeValue());
     		}
     		else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_PARENTS) {
-    			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_2_fk = p.id AND ((");
-	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_FATHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
-	    		querySB.append(" ) OR (");
-	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_MOTHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
-	    		querySB.append(" )) AND ");
+    			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_2_fk = p.id AND ");
+	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, "@Spl: av.attribute_value IN ('" + Constants.RELATION_NAME_FATHER + "', '" + Constants.RELATION_NAME_MOTHER + "')", personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
+	    		querySB.append(" AND (");
 	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_1_fk"));
-	    		querySB.append("))");
+	    		querySB.append(")))");
     		}
     		else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_SPOUSES) {
-    			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_1_fk = p.id AND ");
+    			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE p.id IN (r.person_1_fk, r.person_2_fk) AND ");
 	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_HUSBAND, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
 	    		querySB.append(" AND ");
-	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_2_fk"));
+	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = CASE WHEN p.id = r.person_1_fk THEN r.person_2_fk ELSE r.person_1_fk END"));
 	    		querySB.append(")");
-    			querySB.append(" OR EXISTS (SELECT 1 FROM relation r WHERE r.person_2_fk = p.id AND ");
-	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_HUSBAND, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
-	    		querySB.append(" AND ");
-	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_1_fk"));
-	    		querySB.append("))");
+	    		querySB.append(")");
     		} else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_CHILDREN) {
-    			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_1_fk = p.id AND ((");
-	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_FATHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
-	    		querySB.append(" ) OR (");
-	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_MOTHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
-	    		querySB.append(" )) AND ");
+    			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_1_fk = p.id AND ");
+	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, "@Spl: av.attribute_value IN ('" + Constants.RELATION_NAME_FATHER + "', '" + Constants.RELATION_NAME_MOTHER + "')", personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
+	    		querySB.append(" AND (");
 	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_2_fk"));
-	    		querySB.append("))");
+	    		querySB.append(")))");
     		} else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_SIBLINGS) {
-    			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_2_fk = p.id AND ((");
-	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_FATHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
-	    		querySB.append(" ) OR (");
-	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_MOTHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
-	    		querySB.append(" )) AND (EXISTS (SELECT 1 FROM relation r2 WHERE r2.person_1_fk = r.person_1_fk AND r2.person_2_fk <> p.id AND ((");
-	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_FATHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r2.id"));
-	    		querySB.append(" ) OR (");
-	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_MOTHER, personSearchCriteriaVO.isLenient(),  "relation_fk = r2.id"));
-	    		querySB.append(" )) AND ");
+    			querySB.append(" AND (EXISTS (SELECT 1 FROM relation r WHERE r.person_2_fk = p.id AND ");
+	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, "@Spl: av.attribute_value IN ('" + Constants.RELATION_NAME_FATHER + "', '" + Constants.RELATION_NAME_MOTHER + "')", personSearchCriteriaVO.isLenient(),  "relation_fk = r.id"));
+	    		querySB.append(" AND (EXISTS (SELECT 1 FROM relation r2 WHERE r2.person_1_fk = r.person_1_fk AND r2.person_2_fk <> p.id AND ");
+	    		querySB.append(buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, "@Spl: av.attribute_value IN ('" + Constants.RELATION_NAME_FATHER + "', '" + Constants.RELATION_NAME_MOTHER + "')", personSearchCriteriaVO.isLenient(),  "relation_fk = r2.id"));
+	    		querySB.append(" AND (");
 	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r2.person_2_fk"));
-	    		querySB.append("))))");
+	    		querySB.append(")))))");
     		}
     	}
 		querySB.append(" ORDER BY p.id;");
@@ -1115,30 +1103,34 @@ public class PersonRelationService {
 				.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + attributeDvId, null));
 		domainValueFlags.setDomainValue(domainValue);
 		querySB.append(" AND (");
-		if (Objects.equals(domainValueFlags.getValidationJsRegEx(), Constants.TRANSLATABLE_REGEX)) {	// Beware: PostgreSQL specific syntax
-			if (isLenient) {
-				querySB.append("(");
-				for (String alternative : UtilFuncs.normaliseForSearch(attributeValue)) {
-					querySB.append(" av.normalised_value LIKE '%");
-					querySB.append(alternative);
-					querySB.append("%' OR");
-				}
-				querySB.delete(querySB.length() - 3, querySB.length());
-				querySB.append(")");
-			} else {
-				querySB.append(" LOWER(av.attribute_value) LIKE '%");
-				querySB.append(attributeValue.toLowerCase());
-				querySB.append("%'");
-			}
+		if (attributeValue.startsWith("@Spl:")) {
+			querySB.append(attributeValue.substring(5));
 		} else {
-			querySB.append(" LOWER(av.attribute_value) = '");
-			querySB.append(attributeValue.toLowerCase());
-			querySB.append("'");
-		}
-		if (domainValueFlags.getIsTranslatable() && !SecurityContext.getCurrentLanguageDvId().equals(Constants.DEFAULT_LANGUAGE_DV_ID)) {
-			querySB.append(" OR EXISTS (SELECT 1 FROM translation t WHERE t.attribute_value_fk = av.id AND LOWER(t.value) LIKE '%");	// Beware: PostgreSQL specific syntax
-			querySB.append(attributeValue.toLowerCase());
-			querySB.append("%')");
+			if (Objects.equals(domainValueFlags.getValidationJsRegEx(), Constants.TRANSLATABLE_REGEX)) {	// Beware: PostgreSQL specific syntax
+				if (isLenient) {
+					querySB.append("(");
+					for (String alternative : UtilFuncs.normaliseForSearch(attributeValue)) {
+						querySB.append(" av.normalised_value LIKE '%");
+						querySB.append(alternative);
+						querySB.append("%' OR");
+					}
+					querySB.delete(querySB.length() - 3, querySB.length());
+					querySB.append(")");
+				} else {
+					querySB.append(" LOWER(av.attribute_value) LIKE '%");
+					querySB.append(attributeValue.toLowerCase());
+					querySB.append("%'");
+				}
+			} else {
+				querySB.append(" LOWER(av.attribute_value) = '");
+				querySB.append(attributeValue.toLowerCase());
+				querySB.append("'");
+			}
+			if (domainValueFlags.getIsTranslatable() && !SecurityContext.getCurrentLanguageDvId().equals(Constants.DEFAULT_LANGUAGE_DV_ID)) {
+				querySB.append(" OR EXISTS (SELECT 1 FROM translation t WHERE t.attribute_value_fk = av.id AND LOWER(t.value) LIKE '%");	// Beware: PostgreSQL specific syntax
+				querySB.append(attributeValue.toLowerCase());
+				querySB.append("%')");
+			}
 		}
 		querySB.append("))");
 		return querySB.toString();
