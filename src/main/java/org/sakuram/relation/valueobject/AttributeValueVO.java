@@ -17,6 +17,8 @@ public class AttributeValueVO {
 	private Date startDate;
 	private Date endDate;
 	private Boolean isPrivate;
+	/* Search criteria only */
+	private boolean isMaybeNotRegistered;
 
 	public String getAvValue() {
 		return translatedValue == null ? attributeValue : translatedValue;
