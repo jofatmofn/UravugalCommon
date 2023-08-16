@@ -1,6 +1,8 @@
 package org.sakuram.relation.valueobject;
 
 import java.sql.Date;
+import java.util.List;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -12,6 +14,7 @@ public class AttributeValueVO {
 	private long attributeDvId;
 	private String attributeName;
 	private String attributeValue;
+	private List<String> attributeValueList;
 	private String translatedValue;
 	private boolean isValueApproximate;
 	private Date startDate;

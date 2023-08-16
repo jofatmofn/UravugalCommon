@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.logging.log4j.LogManager;
 import org.javatuples.Pair;
+import org.javatuples.Octet;
 import org.sakuram.relation.bean.AttributeValue;
 import org.sakuram.relation.bean.DomainValue;
 import org.sakuram.relation.bean.Person;
@@ -987,7 +988,7 @@ public class PersonRelationService {
     			    		buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, "@Spl: AND av.attribute_value IN ('" + Constants.RELATION_NAME_FATHER + "', '" + Constants.RELATION_NAME_MOTHER + "')", personSearchCriteriaVO.isLenient(),  "relation_fk = r.id");
 	    		querySB.append(ntrmdtQuery);
 	    		querySB.append(" AND ");
-	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_1_fk"));
+	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue(), attributeValueVO.getAttributeValueList(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_1_fk"));
 	    		querySB.append(")))");
 	    		if (attributeValueVO.isMaybeNotRegistered()) {
 		    		querySB.append(" OR NOT ");
@@ -1002,7 +1003,7 @@ public class PersonRelationService {
 	    			    	buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, Constants.RELATION_NAME_HUSBAND, personSearchCriteriaVO.isLenient(),  "relation_fk = r.id");
 	    		querySB.append(ntrmdtQuery);
 	    		querySB.append(" AND ");
-	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = CASE WHEN p.id = r.person_1_fk THEN r.person_2_fk ELSE r.person_1_fk END"));
+	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue(), attributeValueVO.getAttributeValueList(), personSearchCriteriaVO.isLenient(),  "person_fk = CASE WHEN p.id = r.person_1_fk THEN r.person_2_fk ELSE r.person_1_fk END"));
 	    		querySB.append(")))");
 	    		if (attributeValueVO.isMaybeNotRegistered()) {
 		    		querySB.append(" OR NOT ");
@@ -1016,7 +1017,7 @@ public class PersonRelationService {
     			    		buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, "@Spl: AND av.attribute_value IN ('" + Constants.RELATION_NAME_FATHER + "', '" + Constants.RELATION_NAME_MOTHER + "')", personSearchCriteriaVO.isLenient(),  "relation_fk = r.id");
 	    		querySB.append(ntrmdtQuery);
 	    		querySB.append(" AND ");
-	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_2_fk"));
+	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue(), attributeValueVO.getAttributeValueList(), personSearchCriteriaVO.isLenient(),  "person_fk = r.person_2_fk"));
 	    		querySB.append(")))");
 	    		if (attributeValueVO.isMaybeNotRegistered()) {
 		    		querySB.append(" OR NOT ");
@@ -1032,7 +1033,7 @@ public class PersonRelationService {
 	    			    	buildQueryOneAv(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, "@Spl: AND av.attribute_value IN ('" + Constants.RELATION_NAME_FATHER + "', '" + Constants.RELATION_NAME_MOTHER + "')", personSearchCriteriaVO.isLenient(),  "relation_fk = r2.id");
 	    		querySB.append(ntrmdtQuery);
 	    		querySB.append(" AND ");
-	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue().toLowerCase(), personSearchCriteriaVO.isLenient(),  "person_fk = r2.person_2_fk"));
+	    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, attributeValueVO.getAttributeValue(), attributeValueVO.getAttributeValueList(), personSearchCriteriaVO.isLenient(),  "person_fk = r2.person_2_fk"));
 	    		querySB.append(")))");
 	    		if (attributeValueVO.isMaybeNotRegistered()) {
 		    		querySB.append(" OR NOT ");
@@ -1047,6 +1048,7 @@ public class PersonRelationService {
     	personList = personRepository.executeDynamicQuery(querySB.toString());
     	
     	searchResultsVO = new SearchResultsVO();
+    	searchResultsVO.setQueryToDb(querySB.toString());
     	if (personList.size() == 0) {
     		return searchResultsVO;
     	}
@@ -1126,9 +1128,16 @@ public class PersonRelationService {
     }
 
 	private String buildQueryOneAv(long attributeDvId, String attributeValue, boolean isLenient, String avCriteria) {
+		return buildQueryOneAv(attributeDvId, attributeValue, null, isLenient, avCriteria);
+	}
+	
+	private String buildQueryOneAv(long attributeDvId, String attributeValue, List<String> attributeValueList, boolean isLenient, String avCriteria) {
     	StringBuilder querySB;
     	DomainValue domainValue;
     	DomainValueFlags domainValueFlags;
+    	
+    	// TODO attributeValueList is currently used on-need basis
+    	
 		querySB = new StringBuilder();
     	domainValueFlags = new DomainValueFlags();
 		querySB.append(" EXISTS (SELECT 1 FROM attribute_value av WHERE av.overwritten_by_fk IS NULL AND av.deleter_fk IS NULL AND av.attribute_fk = ");
@@ -1138,17 +1147,23 @@ public class PersonRelationService {
 		domainValue = domainValueRepository.findById(Long.valueOf(attributeDvId))
 				.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + attributeDvId, null));
 		domainValueFlags.setDomainValue(domainValue);
-		if (attributeValue.startsWith("@Spl:")) {
+		if (attributeValue != null && attributeValue.startsWith("@Spl:")) {
 			querySB.append(attributeValue.substring(5));
 		} else {
 			querySB.append(" AND (");
 			if (Objects.equals(domainValueFlags.getValidationJsRegEx(), Constants.TRANSLATABLE_REGEX)) {	// Beware: PostgreSQL specific syntax
 				if (isLenient) {
+					if (attributeValueList == null) {
+						attributeValueList = new ArrayList<String>();
+						attributeValueList.add(attributeValue);
+					}
 					querySB.append("(");
-					for (String alternative : UtilFuncs.normaliseForSearch(attributeValue)) {
-						querySB.append(" av.normalised_value LIKE '%");
-						querySB.append(alternative);
-						querySB.append("%' OR");
+					for (String av : attributeValueList) {
+						for (String alternative : UtilFuncs.normaliseForSearch(av)) {
+							querySB.append(" av.normalised_value LIKE '%");
+							querySB.append(alternative);
+							querySB.append("%' OR");
+						}
 					}
 					querySB.delete(querySB.length() - 3, querySB.length());
 					querySB.append(")");
@@ -1366,40 +1381,54 @@ public class PersonRelationService {
     	personRepository.save(person);
     }
 
-    public List<List<Object>> importPrData(Long sourceId, Iterable<CSVRecord> csvRecords) {
+    public List<List<Object>> importPrData(String function, Long sourceId, Iterable<CSVRecord> csvRecords) {
     	// Two passes, one to validate and one to store into DB. This avoids gap in person/relation/attributeValue ids, caused by exception during storing.
+    	Pair<List<List<Object>>, List<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>>> preImportData;
 		List<List<Object>> validationMessageList;
 		List<Object> validationMessage;
 		
-		validationMessageList = validatePrData(csvRecords);
+		preImportData = validatePrData(csvRecords);
+		validationMessageList = preImportData.getValue0();
 		if (validationMessageList.size() == 1) {
-			validationMessage = new ArrayList<Object>(1);
-			validationMessageList.set(0, validationMessage);
-			validationMessage.add("File imported Successfully.");
-			try {
-				storePrData(sourceId, csvRecords);
-			} catch (Exception e) {
-				e.printStackTrace();
-				validationMessage.set(0, e.getMessage());
+			if (function.equals(Constants.UPLOAD_FUNCTION_STORE)) {
+				validationMessage = new ArrayList<Object>(1);
+				validationMessageList.set(0, validationMessage);
+				validationMessage.add("File imported Successfully.");
+				try {
+					storePrData(sourceId, csvRecords);
+				} catch (Exception e) {
+					e.printStackTrace();
+					validationMessage.set(0, e.getMessage());
+				}
+			} else {
+				validationMessage = new ArrayList<Object>(1);
+				validationMessageList.set(0, validationMessage);
+				validationMessage.add("Duplicate checked Successfully.");
+				try {
+					return checkDuplicatesPrData(preImportData.getValue1());
+				} catch (Exception e) {
+					e.printStackTrace();
+					validationMessage.set(0, e.getMessage());
+				}
 			}
 		}
-		
 		return validationMessageList;
     }
     
-    public List<List<Object>> validatePrData(Iterable<CSVRecord> csvRecords) {
+    private Pair<List<List<Object>>, List<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>>> validatePrData(Iterable<CSVRecord> csvRecords) {
 		List<List<Object>> validationMessageList;
 		List<Object> validationMessageHeader;
-    	int cellCount, cellInd, lastCellInd, lastRecordLevel;
+    	int cellCount, cellInd, lastCellInd, lastRecordLevel, rowInd;
     	Iterator<String> strItr;
-    	String cellContent, personAttributeValuesArr[], currentGender, previousGender;
+    	String cellContent, personAttributeValuesArr[], currentGender, previousGender, currentName;
     	Long personId;
     	Optional<Person> person;
-    	AttributeValue genderAv;
-    	DomainValue genderAttributeDv;
-    	Map<String, String> referenceIdMap;
-		
-		validationMessageList = new ArrayList<List<Object>>();
+    	AttributeValue genderAv, nameAv;
+    	DomainValue genderAttributeDv, nameAttributeDv, attributeValueDv;
+    	Map<String, Pair<String, String>> referenceIdMap;
+    	List<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>> sheetContent;
+    	
+    	validationMessageList = new ArrayList<List<Object>>();
 		validationMessageHeader = new ArrayList<Object>(3);
 		validationMessageList.add(validationMessageHeader);
 		
@@ -1407,16 +1436,25 @@ public class PersonRelationService {
 		validationMessageHeader.add("Column");
 		validationMessageHeader.add("Error");
 		
-		referenceIdMap = new HashMap<String, String>();
+		referenceIdMap = new HashMap<String, Pair<String, String>>();
+		sheetContent = new ArrayList<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>>();
+		genderAttributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
+				.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
+	
+		nameAttributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME)
+				.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, null));
 		previousGender = null;
 		lastRecordLevel = -1;
+		rowInd = -1;
     	recordLoop: for (CSVRecord csvRecord : csvRecords) {
+    		rowInd++;
     		cellCount = 0;
     		strItr = csvRecord.iterator();	// In this version of CSVRecord, toList() and values() are not public
     		cellInd = -1;					// and regular iterator doesn't support nextIndex()
     		lastCellInd = -1;
     		while (strItr.hasNext()) {
     			cellInd++;
+				personId = null;
     			cellContent = strItr.next();
     			if (cellContent.equals("")) {
     				continue;
@@ -1464,7 +1502,6 @@ public class PersonRelationService {
     			
     			currentGender = null;
     			if (personAttributeValuesArr.length == 2) {
-    				personId = null;
     		    	try {
     		    		personId = Long.parseLong(personAttributeValuesArr[1]);
     		    	} catch(NumberFormatException nfe) {
@@ -1472,7 +1509,8 @@ public class PersonRelationService {
     		    	}
     		    	if (personId == null) {
     		    		if (referenceIdMap.containsKey(personAttributeValuesArr[1])) {
-    		    			currentGender = referenceIdMap.get(personAttributeValuesArr[1]);
+    		    			currentGender = referenceIdMap.get(personAttributeValuesArr[1]).getValue1();
+    		    			currentName = referenceIdMap.get(personAttributeValuesArr[1]).getValue0();
     		    		} else {
 	    					addValidationMessage(validationMessageList, csvRecord, cellInd, "Invalid cell content: Invalid reference id.");
 	    					continue recordLoop;
@@ -1483,17 +1521,21 @@ public class PersonRelationService {
 	    					addValidationMessage(validationMessageList, csvRecord, cellInd, "Invalid cell content: Person doesn't exist.");
 	    					continue recordLoop;
 	    	    		}
-	    	    		genderAttributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
-	    						.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
 	    				genderAv = getPersonAttribute(person.get(), genderAttributeDv)
 	    						.orElseThrow(() -> new AppException("Invalid gender", null));
-	    	    		currentGender = genderAv.getAttributeValue();
+	    				attributeValueDv = domainValueRepository.findById(Long.valueOf(genderAv.getAttributeValue()))
+	            				.orElseThrow(() -> new AppException("Invalid Attribute Value Dv Id ", null));
+	    				currentGender = attributeValueDv.getValue().substring(0,1);	// TODO: Incorrect logic (In some languages, duplicates can be there; In some languages, a single character could be made up of multiple unicodes)
+	    				nameAv = getPersonAttribute(person.get(), nameAttributeDv)
+	    						.orElseThrow(() -> new AppException("Invalid name", null));
+	    	    		currentName = nameAv.getAttributeValue();
     		    	}
     			} else {
     	    		if (personAttributeValuesArr[1].equals("")) {
     					addValidationMessage(validationMessageList, csvRecord, cellInd, "Invalid cell content: Person name cannot be empty.");
     					continue recordLoop;
     	    		}
+    	    		currentName = personAttributeValuesArr[1];
     	    		currentGender = personAttributeValuesArr[2];
     	    		if (!currentGender.equals("M") && !currentGender.equals("F")) {
     					addValidationMessage(validationMessageList, csvRecord, cellInd, "Invalid cell content: Unsupported Gender.");
@@ -1504,7 +1546,7 @@ public class PersonRelationService {
         					addValidationMessage(validationMessageList, csvRecord, cellInd, "Invalid cell content: Reference id cannot be empty.");
         					continue recordLoop;
         	    		}
-        				referenceIdMap.put(personAttributeValuesArr[4], currentGender);
+        				referenceIdMap.put(personAttributeValuesArr[4], Pair.with(personAttributeValuesArr[1], currentGender));
         			}
     	    		
     			}
@@ -1515,9 +1557,11 @@ public class PersonRelationService {
 					addValidationMessage(validationMessageList, csvRecord, cellInd, "Invalid cells contents: Same Gender Spouse relation is currently unsupported.");
 					continue recordLoop;
 				}
+				
+				sheetContent.add(Octet.with(rowInd, cellInd, personId, currentName, currentGender, new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>()));
     		}
     	}
-		return validationMessageList;
+		return Pair.with(validationMessageList, sheetContent);
     }
 
     private void addValidationMessage(List<List<Object>> validationMessageList, CSVRecord csvRecord, Integer colInd, String message) {
@@ -1532,6 +1576,96 @@ public class PersonRelationService {
     	
     }
 
+    private List<List<Object>> checkDuplicatesPrData(List<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>> sheetContent) {
+		List<List<Object>> duplicatesContents;
+		List<Object> duplicatesRow;
+		int tmpInd, currInd;
+		List<AttributeValueVO> attributeValueVOList;
+		AttributeValueVO attributeValueVO;
+		SearchResultsVO searchResultsVO;
+		
+		duplicatesContents = new ArrayList<List<Object>>();
+		currInd = -1;
+		for (Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>> cellContentTuple : sheetContent) {
+			// 0: row, 1: column, 2: personId, 3: name, 4: gender, 5: parents, 6: spouses, 7: children
+			currInd++;
+			if (cellContentTuple.getValue2() != null) {
+				continue;
+			}
+			if (cellContentTuple.getValue1() % 2 == 0) { // Columns: A, C, E, ...
+				tmpInd = currInd - 1;
+				while (tmpInd > -1 && sheetContent.get(tmpInd).getValue1().compareTo(cellContentTuple.getValue1()) >= 0) tmpInd--; // Locate Parent
+				if (tmpInd > -1 && sheetContent.get(tmpInd).getValue1().equals(cellContentTuple.getValue1() - 1)) {
+					cellContentTuple.getValue5().add(sheetContent.get(tmpInd).getValue3()); // add to parents of current
+					if (sheetContent.get(tmpInd).getValue2() == null) {
+						sheetContent.get(tmpInd).getValue7().add(cellContentTuple.getValue3()); // add to children of parent
+					}
+					tmpInd--;
+				}
+				if (tmpInd > -1 && sheetContent.get(tmpInd).getValue1().equals(cellContentTuple.getValue1() - 2)) {
+					cellContentTuple.getValue5().add(sheetContent.get(tmpInd).getValue3()); // add to parents of current
+					if (sheetContent.get(tmpInd).getValue2() == null) {
+						sheetContent.get(tmpInd).getValue7().add(cellContentTuple.getValue3()); // add to children of parent
+					}
+				}
+			} else { // Columns: B, D, F, ...
+				tmpInd = currInd - 1; // Locate Spouse
+				if (tmpInd > -1 && sheetContent.get(tmpInd).getValue0().equals(cellContentTuple.getValue0())) {
+					cellContentTuple.getValue6().add(sheetContent.get(tmpInd).getValue3()); // add to spouses of current
+					if (sheetContent.get(tmpInd).getValue2() == null) {
+						sheetContent.get(tmpInd).getValue6().add(cellContentTuple.getValue3()); // add to spouses of spouse
+					}
+				}
+			}
+		}
+		
+		for (Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>> cellContentTuple : sheetContent) {
+			if (cellContentTuple.getValue2() != null) {
+				continue;
+			}
+			attributeValueVOList = new ArrayList<AttributeValueVO>();
+			attributeValueVO = new AttributeValueVO();
+			attributeValueVOList.add(attributeValueVO);
+			attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME);
+			attributeValueVO.setAttributeValue(cellContentTuple.getValue3());
+			/* TODO GENDER attributeValueVO = new AttributeValueVO();
+			attributeValueVOList.add(attributeValueVO);
+			attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER);
+			attributeValueVO.setAttributeName(cellContentTuple.getValue4()); After converting from "M", "F" to 59, 60 */
+			if (cellContentTuple.getValue5().size() > 0) {
+				attributeValueVO = new AttributeValueVO();
+				attributeValueVOList.add(attributeValueVO);
+				attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_PARENTS);
+				attributeValueVO.setAttributeValueList(cellContentTuple.getValue5());
+			}
+			if (cellContentTuple.getValue6().size() > 0) {
+				attributeValueVO = new AttributeValueVO();
+				attributeValueVOList.add(attributeValueVO);
+				attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_SPOUSES);
+				attributeValueVO.setAttributeValueList(cellContentTuple.getValue6());
+			}
+			if (cellContentTuple.getValue7().size() > 0) {
+				attributeValueVO = new AttributeValueVO();
+				attributeValueVOList.add(attributeValueVO);
+				attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_CHILDREN);
+				attributeValueVO.setAttributeValueList(cellContentTuple.getValue7());
+			}
+			searchResultsVO = searchPerson(new PersonSearchCriteriaVO(true, attributeValueVOList));
+			if (searchResultsVO.getResultsList() != null) {
+				if (duplicatesContents.size() < cellContentTuple.getValue0() + 1) {
+					duplicatesRow = new ArrayList<Object>();
+					UtilFuncs.listSet(duplicatesContents, cellContentTuple.getValue0().floatValue(), duplicatesRow, new ArrayList<Object>());
+				} else {
+					duplicatesRow = duplicatesContents.get(cellContentTuple.getValue0());
+				}
+				UtilFuncs.listSet(duplicatesRow, cellContentTuple.getValue1().floatValue(), searchResultsVO.getResultsList().get(1).get(0), null);
+				UtilFuncs.listSet(duplicatesRow, cellContentTuple.getValue1().floatValue() + 2, searchResultsVO.getQueryToDb(), null);
+			}
+			
+		}
+    	return duplicatesContents;
+    }
+    
     private void storePrData(Long sourceId, Iterable<CSVRecord> csvRecords) {
     	/* A cell content (Person details) is either skipped (if person id) or INSERTed.
     	 * For relationship to be INSERTed, no prior relationship should exist between the two persons already.

@@ -114,6 +114,8 @@ public class Constants {
 	public static final long ENGLISH_LANGUAGE_DV_ID = 336;
 	public static final long TAMIL_LANGUAGE_DV_ID = 51;
 	public static final String TRANSLATABLE_REGEX = "\\p{L}|[ \\u0BBE-\\u0BCD]";
+	public static final String UPLOAD_FUNCTION_CHECK_DUPLICATES = "ufCheckDuplicates";
+	public static final String UPLOAD_FUNCTION_STORE = "ufStore";
 	
 	public static final String SESSION_ATTRIBUTE_PROJECT_SURROGATE_ID = "projectId";
 	public static final String SESSION_ATTRIBUTE_USER_SURROGATE_ID = "userId";

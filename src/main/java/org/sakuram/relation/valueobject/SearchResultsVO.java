@@ -9,5 +9,5 @@ import lombok.Setter;
 public class SearchResultsVO {
 	int countInDb;
 	List<List<String>> resultsList;
-	
+	String queryToDb;
 }
