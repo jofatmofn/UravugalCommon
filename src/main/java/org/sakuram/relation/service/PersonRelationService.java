@@ -969,7 +969,8 @@ public class PersonRelationService {
     		querySB.append(SecurityContext.getCurrentTenantId());
     	}
     	for(AttributeValueVO attributeValueVO : attributeValueVOList) {
-    		if (attributeValueVO.getAttributeDvId() > 0) {
+    		if (attributeValueVO.getAttributeDvId() > 0 && (attributeValueVO.getAttributeDvId() != Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME ||
+    				!attributeValueVO.getAttributeValue().equalsIgnoreCase("X") && !attributeValueVO.getAttributeValue().equalsIgnoreCase("Y"))) {
 	    		querySB.append(" AND (");
 	    		querySB.append(buildQueryOneAv(attributeValueVO.getAttributeDvId(), attributeValueVO.getAttributeValue(), personSearchCriteriaVO.isLenient(), "person_fk = p.id"));
 	    		if (attributeValueVO.isMaybeNotRegistered()) {
@@ -1043,7 +1044,7 @@ public class PersonRelationService {
 	    		querySB.append(")");
     		}
     	}
-		querySB.append(" ORDER BY p.id;");
+		querySB.append(" ORDER BY p.id;");	// TODO Order by some match score
     	
     	personList = personRepository.executeDynamicQuery(querySB.toString());
     	
@@ -1596,31 +1597,31 @@ public class PersonRelationService {
 				tmpInd = currInd - 1;
 				while (tmpInd > -1 && sheetContent.get(tmpInd).getValue1().compareTo(cellContentTuple.getValue1()) >= 0) tmpInd--; // Locate Parent
 				if (tmpInd > -1 && sheetContent.get(tmpInd).getValue1().equals(cellContentTuple.getValue1() - 1)) {
-					cellContentTuple.getValue5().add(sheetContent.get(tmpInd).getValue3()); // add to parents of current
+					addNonDummy(cellContentTuple.getValue5(), sheetContent.get(tmpInd).getValue3()); // add to parents of current
 					if (sheetContent.get(tmpInd).getValue2() == null) {
-						sheetContent.get(tmpInd).getValue7().add(cellContentTuple.getValue3()); // add to children of parent
+						addNonDummy(sheetContent.get(tmpInd).getValue7(), cellContentTuple.getValue3()); // add to children of parent
 					}
 					tmpInd--;
 				}
 				if (tmpInd > -1 && sheetContent.get(tmpInd).getValue1().equals(cellContentTuple.getValue1() - 2)) {
-					cellContentTuple.getValue5().add(sheetContent.get(tmpInd).getValue3()); // add to parents of current
+					addNonDummy(cellContentTuple.getValue5(), sheetContent.get(tmpInd).getValue3()); // add to parents of current
 					if (sheetContent.get(tmpInd).getValue2() == null) {
-						sheetContent.get(tmpInd).getValue7().add(cellContentTuple.getValue3()); // add to children of parent
+						addNonDummy(sheetContent.get(tmpInd).getValue7(), cellContentTuple.getValue3()); // add to children of parent
 					}
 				}
 			} else { // Columns: B, D, F, ...
 				tmpInd = currInd - 1; // Locate Spouse
 				if (tmpInd > -1 && sheetContent.get(tmpInd).getValue0().equals(cellContentTuple.getValue0())) {
-					cellContentTuple.getValue6().add(sheetContent.get(tmpInd).getValue3()); // add to spouses of current
+					addNonDummy(cellContentTuple.getValue6(), sheetContent.get(tmpInd).getValue3()); // add to spouses of current
 					if (sheetContent.get(tmpInd).getValue2() == null) {
-						sheetContent.get(tmpInd).getValue6().add(cellContentTuple.getValue3()); // add to spouses of spouse
+						addNonDummy(sheetContent.get(tmpInd).getValue6(), cellContentTuple.getValue3()); // add to spouses of spouse
 					}
 				}
 			}
 		}
 		
 		for (Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>> cellContentTuple : sheetContent) {
-			if (cellContentTuple.getValue2() != null) {
+			if (cellContentTuple.getValue2() != null || (cellContentTuple.getValue5().size() == 0 && cellContentTuple.getValue6().size() == 0 && cellContentTuple.getValue7().size() == 0)) {
 				continue;
 			}
 			attributeValueVOList = new ArrayList<AttributeValueVO>();
@@ -1651,7 +1652,7 @@ public class PersonRelationService {
 				attributeValueVO.setAttributeValueList(cellContentTuple.getValue7());
 			}
 			searchResultsVO = searchPerson(new PersonSearchCriteriaVO(true, attributeValueVOList));
-			if (searchResultsVO.getResultsList() != null) {
+			if (searchResultsVO.getResultsList() != null && searchResultsVO.getResultsList().size() < 10) {
 				if (duplicatesContents.size() < cellContentTuple.getValue0() + 1) {
 					duplicatesRow = new ArrayList<Object>();
 					UtilFuncs.listSet(duplicatesContents, cellContentTuple.getValue0().floatValue(), duplicatesRow, new ArrayList<Object>());
@@ -1664,6 +1665,12 @@ public class PersonRelationService {
 			
 		}
     	return duplicatesContents;
+    }
+    
+    private void addNonDummy(List<String> targetList, String toAdd) {
+    	 if (!toAdd.equalsIgnoreCase("X") && !toAdd.equalsIgnoreCase("Y")) {
+    		 targetList.add(toAdd);
+    	 }
     }
     
     private void storePrData(Long sourceId, Iterable<CSVRecord> csvRecords) {
