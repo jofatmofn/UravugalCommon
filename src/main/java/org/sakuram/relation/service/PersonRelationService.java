@@ -419,6 +419,9 @@ public class PersonRelationService {
 	private void exportWriteTree(String personId, int level, Map<String, PersonVO> personsMap, List<RelationVO> relationsList, List<List<Object>> treeCsvContents) {
 		List<String> spousesList, kidsList;
 		boolean isFirstSpouse;
+		Relation relation;
+		DomainValue domainValue;
+		AttributeValue attributeValue;
 		
 		if (level > maxLevel) {
 			maxLevel = level;
@@ -436,11 +439,25 @@ public class PersonRelationService {
 		spousesList = getSpouses(personId, relationsList);
 		isFirstSpouse = (kidsList.size() == 0 ? true : false);
 		for(String spouseId : spousesList) {
-			exportWriteRow(spouseId, level * 2 + 1, isFirstSpouse, personsMap, treeCsvContents);
+			kidsList = getKids(personId, spouseId, relationsList);
+			
+			attributeValue = null;
+			if (kidsList.size() == 0) {
+				if ((relation = relationRepository.findRelationGivenPersons(Long.parseLong(personId), Long.parseLong(spouseId), SecurityContext.getCurrentTenantId())) == null) {
+					throw new AppException(personId + " and " + spouseId + " are not related.", null);
+				}
+				domainValue = domainValueRepository.findById(Constants.RELATION_ATTRIBUTE_DV_ID_YYYY_OF_RELATION_END)
+						.orElseThrow(() -> new AppException("Domain Value missing: " + Constants.RELATION_ATTRIBUTE_DV_ID_YYYY_OF_RELATION_END, null));
+		    	attributeValue = fetchAttribute(null, relation, domainValue)
+						.orElse(null);
+			}
+			if (attributeValue == null) {	// Husband-Wife relation is still there OR they have kid(s)
+				exportWriteRow(spouseId, level * 2 + 1, isFirstSpouse, personsMap, treeCsvContents);
+			}
 			isFirstSpouse = false;
 			
 			// Kids (Both parents are specified)
-			for(String kidId : getKids(personId, spouseId, relationsList)) {
+			for(String kidId : kidsList) {
 				exportWriteTree(kidId, level + 1, personsMap, relationsList, treeCsvContents);
 			}
 		}
@@ -660,7 +677,7 @@ public class PersonRelationService {
     	
     	domainValue = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_MANAGE_USER)
 				.orElseThrow(() -> new AppException("Invalid Attribute Value Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_MANAGE_USER, null));
-    	attributeValueOpt = getPersonAttribute(person, domainValue);
+    	attributeValueOpt = fetchAttribute(person, null, domainValue);
     	if (attributeValueOpt.isPresent() && Long.parseLong(attributeValueOpt.get().getAttributeValue()) == SecurityContext.getCurrentUserId()) {
 			return true;	// The user has manage access to the person
 		} else {
@@ -698,7 +715,7 @@ public class PersonRelationService {
     	
 		domainValue =  domainValueRepository.findById(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2)
 				.orElseThrow(() -> new AppException("Domain Value missing: " + Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, null));
-    	attributeValue = attributeValueRepository.findByRelationAndAttribute(relation, domainValue)
+    	attributeValue = fetchAttribute(null, relation, domainValue)
 				.orElseThrow(() -> new AppException("Person 1 for Person 2 missing for relation " + relation.getId(), null));
     	errorMessage = "Invalid (Attribute Value) Dv Id " + attributeValue.getAttributeValue();
 		domainValue = domainValueRepository.findById(Long.valueOf(attributeValue.getAttributeValue()))
@@ -708,11 +725,11 @@ public class PersonRelationService {
     	
 		domainValue =  domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
 				.orElseThrow(() -> new AppException("Domain Value missing: " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
-    	attributeValue = getPersonAttribute(relation.getPerson1(), domainValue)
+    	attributeValue = fetchAttribute(relation.getPerson1(), null, domainValue)
 				.orElseThrow(() -> new AppException("Gender missing for person " + relation.getPerson1().getId(), null));
     	retrieveRelationAttributesResponseVO.setPerson1GenderDVId(Long.valueOf(attributeValue.getAttributeValue()));
     	
-    	attributeValue = getPersonAttribute(relation.getPerson2(), domainValue)
+    	attributeValue = fetchAttribute(relation.getPerson2(), null, domainValue)
 				.orElseThrow(() -> new AppException("Gender missing for person " + relation.getPerson2().getId(), null));
     	retrieveRelationAttributesResponseVO.setPerson2GenderDVId(Long.valueOf(attributeValue.getAttributeValue()));
     	
@@ -798,7 +815,7 @@ public class PersonRelationService {
 				.orElseThrow(() -> new AppException("Invalid Relation Id " + saveAttributesRequestVO.getEntityId(), null));
 		domainValue =  domainValueRepository.findById(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2)
 				.orElseThrow(() -> new AppException("Attribute Dv Id missing: " + Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2, null));
-		person1ForPerson2Av = attributeValueRepository.findByRelationAndAttribute(relation, domainValue)
+		person1ForPerson2Av = fetchAttribute(null, relation, domainValue)
 				.orElseThrow(() -> new AppException("Mandatory Attribute missing for relation " + saveAttributesRequestVO.getEntityId(), null));
 		domainValue = domainValueRepository.findById(Long.valueOf(person1ForPerson2Av.getAttributeValue()))
 				.orElseThrow(() -> new AppException("Invalid Attribute Value Dv Id " + person1ForPerson2Av.getAttributeValue(), null));
@@ -1259,7 +1276,7 @@ public class PersonRelationService {
     				.orElseThrow(() -> new AppException("Invalid Person Id " + personId, null));
 			attributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
 					.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
-			genderAv = getPersonAttribute(person, attributeDv)
+			genderAv = fetchAttribute(person, null, attributeDv)
 					.orElseThrow(() -> new AppException("Invalid gender for " + personId, null));
 			gendersOfPersonsList.add(genderAv.getAttributeValue());
     	}
@@ -1305,7 +1322,7 @@ public class PersonRelationService {
 		if (saveRelationRequestVO.getPerson1ForPerson2().equals(Constants.RELATION_NAME_MOTHER) || saveRelationRequestVO.getPerson1ForPerson2().equals(Constants.RELATION_NAME_FATHER)) {
 			attributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
 					.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
-			genderAv = getPersonAttribute(person2, attributeDv)
+			genderAv = fetchAttribute(person2, null, attributeDv)
 					.orElseThrow(() -> new AppException("Invalid gender for " + saveRelationRequestVO.getPerson2Id(), null));
 			if (genderAv.getAttributeValue().equals(Constants.GENDER_NAME_MALE)) {
 				attributeValue2.setAttributeValue(Constants.RELATION_NAME_SON);
@@ -1516,12 +1533,12 @@ public class PersonRelationService {
 	    					addValidationMessage(validationMessageList, csvRecord, cellInd, "Invalid cell content: Person doesn't exist.");
 	    					continue recordLoop;
 	    	    		}
-	    				genderAv = getPersonAttribute(person.get(), genderAttributeDv)
+	    				genderAv = fetchAttribute(person.get(), null, genderAttributeDv)
 	    						.orElseThrow(() -> new AppException("Invalid gender", null));
 	    				attributeValueDv = domainValueRepository.findById(Long.valueOf(genderAv.getAttributeValue()))
 	            				.orElseThrow(() -> new AppException("Invalid Attribute Value Dv Id ", null));
 	    				currentGender = attributeValueDv.getValue().substring(0,1);	// TODO: Incorrect logic (In some languages, duplicates can be there; In some languages, a single character could be made up of multiple unicodes)
-	    				nameAv = getPersonAttribute(person.get(), nameAttributeDv)
+	    				nameAv = fetchAttribute(person.get(), null, nameAttributeDv)
 	    						.orElseThrow(() -> new AppException("Invalid name", null));
 	    	    		currentName = nameAv.getAttributeValue();
     		    	}
@@ -1830,7 +1847,7 @@ public class PersonRelationService {
 	    	} catch(NumberFormatException nfe) {
 	    		person = referenceIdMap.get(personAttributeValuesArr[1]);
 	    	}
-			genderAv = getPersonAttribute(person, genderPersAttributeDv)
+			genderAv = fetchAttribute(person, null, genderPersAttributeDv)
 					.orElseThrow(() -> new AppException("Invalid gender", null));
 	    	
 			isMale = false;
@@ -1851,7 +1868,7 @@ public class PersonRelationService {
     			} else {
     				person = femalePersonList.get(level);
     			}
-    			genderAv = getPersonAttribute(person, genderPersAttributeDv)
+    			genderAv = fetchAttribute(person, null, genderPersAttributeDv)
     					.orElseThrow(() -> new AppException("Invalid gender", null));
     		} else {
         		person = new Person(source);
@@ -1929,7 +1946,7 @@ public class PersonRelationService {
 			if (isRelationNewlyCreated) {
 				attributeValue = null;
 			} else {
-				attributeValue = attributeValueRepository.findByRelationAndAttribute(relation, sequenceOfPerson2ForPerson1RelAttributeDv)
+				attributeValue = fetchAttribute(null, relation, sequenceOfPerson2ForPerson1RelAttributeDv)
 						.orElseGet(() -> null);
 			}
 			if (attributeValue == null) {
@@ -1941,10 +1958,13 @@ public class PersonRelationService {
 		}
     }
     
-    private Optional<AttributeValue> getPersonAttribute(Person person, DomainValue persAttributeDv) {
+    private Optional<AttributeValue> fetchAttribute(Person person, Relation relation, DomainValue persAttributeDv) {
     	DomainValueFlags domainValueFlags;
+    	List<AttributeValue> attributeValueList;
+    	
     	domainValueFlags = new DomainValueFlags(persAttributeDv);
-    	for (AttributeValue av : person.getAttributeValueList()) {
+    	attributeValueList = (person == null ? relation.getAttributeValueList() : person.getAttributeValueList());
+    	for (AttributeValue av : attributeValueList) {
     		if (av.getAttribute().equals(persAttributeDv) &&
     				(domainValueFlags.getRepetitionType().equals(Constants.FLAG_ATTRIBUTE_REPETITION_NOT_ALLOWED) ||
     				serviceParts.isCurrentValidAttributeValue(av))) {

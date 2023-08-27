@@ -30,6 +30,7 @@ public class Constants {
 	public static final long RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON1_FOR_PERSON2 = 61;
 	public static final long RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON2_FOR_PERSON1 = 62;
 	public static final long RELATION_ATTRIBUTE_DV_ID_RELATION_SUB_TYPE = 36;
+	public static final long RELATION_ATTRIBUTE_DV_ID_YYYY_OF_RELATION_END = 351;
 	
 	public static final String RELATION_NAME_FATHER = "1";
 	public static final String RELATION_NAME_MOTHER = "2";
