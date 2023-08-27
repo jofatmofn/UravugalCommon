@@ -417,7 +417,7 @@ public class PersonRelationService {
 	}
 	
 	private void exportWriteTree(String personId, int level, Map<String, PersonVO> personsMap, List<RelationVO> relationsList, List<List<Object>> treeCsvContents) {
-		List<String> spousesList;
+		List<String> spousesList, kidsList;
 		boolean isFirstSpouse;
 		
 		if (level > maxLevel) {
@@ -426,25 +426,23 @@ public class PersonRelationService {
 		// Person
 		exportWriteRow(personId, level * 2, false, personsMap, treeCsvContents);
 		
+		// Kids (Only one parent specified)
+		kidsList = getKids(personId, null, relationsList);
+		for(String kidId : kidsList) {
+			exportWriteTree(kidId, level + 1, personsMap, relationsList, treeCsvContents);
+		}
+		
 		// Spouse
 		spousesList = getSpouses(personId, relationsList);
-		isFirstSpouse = true;
-		if (spousesList.size() > 0) {
-			for(String spouseId : spousesList) {
-				exportWriteRow(spouseId, level * 2 + 1, isFirstSpouse, personsMap, treeCsvContents);
-				isFirstSpouse = false;
-				
-				// Kids
-				for(String kidId : getKids(personId, spouseId, relationsList)) {
-					exportWriteTree(kidId, level + 1, personsMap, relationsList, treeCsvContents);
-				}
-			}
-		} else {
-			// Kids
-			for(String kidId : getKids(personId, null, relationsList)) {
+		isFirstSpouse = (kidsList.size() == 0 ? true : false);
+		for(String spouseId : spousesList) {
+			exportWriteRow(spouseId, level * 2 + 1, isFirstSpouse, personsMap, treeCsvContents);
+			isFirstSpouse = false;
+			
+			// Kids (Both parents are specified)
+			for(String kidId : getKids(personId, spouseId, relationsList)) {
 				exportWriteTree(kidId, level + 1, personsMap, relationsList, treeCsvContents);
 			}
-			
 		}
 	}
 	
@@ -500,7 +498,7 @@ public class PersonRelationService {
 		Map<String, Float> parent1SatisfiedKidsMap;
 		List<String> parent2SatisfiedKidsList;
 		List<Pair<String, Float>> kidsList;
-		String kidId, person2ForPerson1RelId, person1ForPerson2RelId;
+		String kidId, person2ForPerson1RelId;
 		float sequenceNo, randSequenceNo;
 		
 		parent1SatisfiedKidsMap = new HashMap<String, Float>();
@@ -509,30 +507,26 @@ public class PersonRelationService {
 		randSequenceNo = 1;
 		for(RelationVO relationVO : relationsList) {
 			person2ForPerson1RelId = Constants.RELATION_NAME_TO_ID_MAP.get(relationVO.getAttribute(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON2_FOR_PERSON1));
-			person1ForPerson2RelId = Constants.RELATION_NAME_TO_ID_MAP.get(relationVO.getAttribute(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2));
-			if(relationVO.getSource().equals(parent1Id) && (person2ForPerson1RelId == Constants.RELATION_NAME_SON || person2ForPerson1RelId == Constants.RELATION_NAME_DAUGHTER) ||
-					relationVO.getTarget().equals(parent1Id) && (person1ForPerson2RelId == Constants.RELATION_NAME_SON || person1ForPerson2RelId == Constants.RELATION_NAME_DAUGHTER)) {
-				kidId = relationVO.getSource().equals(parent1Id) ? relationVO.getTarget() : relationVO.getSource();
-				if (relationVO.getSource().equals(parent1Id)) {
-					sequenceNo = relationVO.getAttribute(Constants.RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON2_FOR_PERSON1).equals("") ? randSequenceNo++ : Float.valueOf(relationVO.getAttribute(Constants.RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON2_FOR_PERSON1));
-				} else if (relationVO.getTarget().equals(parent1Id)) {
-					sequenceNo = relationVO.getAttribute(Constants.RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON1_FOR_PERSON2).equals("") ? randSequenceNo++ : Float.valueOf(relationVO.getAttribute(Constants.RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON1_FOR_PERSON2));
-				} else {
-					continue;
-				}
-				if (parent2SatisfiedKidsList.contains(kidId) || parent2Id == null) {
+			if(relationVO.getSource().equals(parent1Id) && (person2ForPerson1RelId == Constants.RELATION_NAME_SON || person2ForPerson1RelId == Constants.RELATION_NAME_DAUGHTER)) {
+				kidId = relationVO.getTarget();
+				sequenceNo = relationVO.getAttribute(Constants.RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON2_FOR_PERSON1).equals("") ? randSequenceNo++ : Float.valueOf(relationVO.getAttribute(Constants.RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON2_FOR_PERSON1));
+				if (parent2SatisfiedKidsList.contains(kidId) && parent2Id != null) {
 					kidsList.add(Pair.with(kidId, sequenceNo));
-				} else {
-					parent1SatisfiedKidsMap.put(kidId, sequenceNo);
 				}
-			} else if(relationVO.getSource().equals(parent2Id) && (person2ForPerson1RelId == Constants.RELATION_NAME_SON || person2ForPerson1RelId == Constants.RELATION_NAME_DAUGHTER) ||
-					relationVO.getTarget().equals(parent2Id) && (person1ForPerson2RelId == Constants.RELATION_NAME_SON || person1ForPerson2RelId == Constants.RELATION_NAME_DAUGHTER)) {
-				kidId = relationVO.getSource().equals(parent2Id) ? relationVO.getTarget() : relationVO.getSource();
-				if (parent1SatisfiedKidsMap.containsKey(kidId)) {
+				parent1SatisfiedKidsMap.put(kidId, sequenceNo);
+			} else if((relationVO.getSource().equals(parent2Id) || parent2Id == null) && (person2ForPerson1RelId == Constants.RELATION_NAME_SON || person2ForPerson1RelId == Constants.RELATION_NAME_DAUGHTER)) {
+				kidId = relationVO.getTarget();
+				if (parent1SatisfiedKidsMap.containsKey(kidId) && parent2Id != null) {
 					sequenceNo = parent1SatisfiedKidsMap.get(kidId);
 					kidsList.add(Pair.with(kidId, sequenceNo));
-				} else {
-					parent2SatisfiedKidsList.add(kidId);
+				}
+				parent2SatisfiedKidsList.add(kidId);
+			}
+		}
+		if (parent2Id == null) {
+			for (Map.Entry<String, Float>  parent1SatisfiedKidsMapEntry : parent1SatisfiedKidsMap.entrySet()) {
+				if (!parent2SatisfiedKidsList.contains(parent1SatisfiedKidsMapEntry.getKey())) {
+					kidsList.add(Pair.with(parent1SatisfiedKidsMapEntry.getKey(), parent1SatisfiedKidsMapEntry.getValue()));
 				}
 			}
 		}
