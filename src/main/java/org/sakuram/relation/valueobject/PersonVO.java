@@ -19,6 +19,7 @@ public class PersonVO implements Comparable<PersonVO>{
 	private String color;
 	private double x;
 	private double y;
+	@JsonIgnore private boolean hasContributed;
 	
 	public void determineLabel() {
 		label =  "(" + (id == null ? "" : id) + "/" + (gender == null ? "" : gender) + ")" + (firstName == null ? "" : firstName) +

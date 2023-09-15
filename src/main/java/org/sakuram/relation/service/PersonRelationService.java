@@ -269,7 +269,9 @@ public class PersonRelationService {
 			else {
 				currentPersonVO = personVOMap.get(currentPerson.getId());
 				isFirstKid = true;
+	    		currentPersonVO.setHasContributed(false);
 		    	for (RelatedPerson1VO relatedPerson1VO : retrieveRelatives(currentPerson, retrieveRelationsRequestVO.getRequiredRelationsList())) {
+		    		currentPersonVO.setHasContributed(true);
 					if (relatedPerson1VO.relationDvId.equals(Constants.RELATION_NAME_HUSBAND) ||
 							relatedPerson1VO.relationDvId.equals(Constants.RELATION_NAME_WIFE) ||
 							currentLevel < retrieveRelationsRequestVO.getMaxDepth() - 1) {
@@ -287,6 +289,9 @@ public class PersonRelationService {
 			    				currInd = (int) (readInd + relatedPerson1VO.seqNo);
 			    				LogManager.getLogger().debug(" at index " + currInd);
 			    				if (currInd >= relatedPerson2VOList.size()) {
+				    				if (relatedPerson2VOList.size() == Constants.EXPORT_TREE_MAX_PERSONS) {
+				    					throw new AppException("You are not authorised to export such a huge data.", null);
+				    				}
 									relatedPerson2VOList.add(relatedPerson2VO);
 			    				} else {
 									relatedPerson2VOList.add(currInd, relatedPerson2VO);
@@ -418,6 +423,78 @@ public class PersonRelationService {
 			personVO.setX(sequence);
 			ind++;
 		}
+	}
+	
+	public List<List<Object>> exportFullTree(RetrieveRelationsRequestVO retrieveRelationsRequestVO) {
+		List<List<Object>> treeCsvContents;
+		GraphVO treeGraphVO;
+		List<Long> forPersonsList;
+		List<RelatedPerson1VO> relatedPerson1VOList;
+		Person person;
+		List<String> requiredRelationTypesList;
+		int mainPersonInd, matchSpouseInd;
+		PersonVO mainPersonVO, matchSpouseVO;
+		long retrievePersonId;
+		
+		treeCsvContents = new ArrayList<List<Object>>();
+		treeGraphVO = retrieveRoots(retrieveRelationsRequestVO);
+		forPersonsList = new ArrayList<Long>();
+		requiredRelationTypesList = Arrays.asList(Constants.RELATION_NAME_HUSBAND, Constants.RELATION_NAME_WIFE);
+		mainPersonInd = 0;
+		while (mainPersonInd < treeGraphVO.getNodes().size()) {
+			mainPersonVO = treeGraphVO.getNodes().get(mainPersonInd);
+			LogManager.getLogger().debug("Main Person: " + mainPersonVO.getLabel());
+			retrievePersonId = Long.parseLong(mainPersonVO.getId());
+			person = personRepository.findByIdAndTenant(retrievePersonId, SecurityContext.getCurrentTenant())
+					.orElseThrow(() -> new AppException("Invalid Person Id ", null));
+	    	
+			relatedPerson1VOList = retrieveRelatives(person, requiredRelationTypesList);
+			
+			matchSpouseVO = null;
+			matchSpouseInd = mainPersonInd + 1;
+			match:
+			while (matchSpouseInd < treeGraphVO.getNodes().size()) {
+				matchSpouseVO = treeGraphVO.getNodes().get(matchSpouseInd);
+				for (RelatedPerson1VO relatedPerson1VO : relatedPerson1VOList) {
+					if (Long.parseLong(matchSpouseVO.getId()) == relatedPerson1VO.person.getId()) {
+						break match;
+					}
+				}
+				matchSpouseInd++;
+			}
+			if (matchSpouseInd < treeGraphVO.getNodes().size()) {
+				LogManager.getLogger().debug("Matching Spouse: " + matchSpouseVO.getLabel());
+				if (!mainPersonVO.isHasContributed() && !matchSpouseVO.isHasContributed()) {
+					retrievePersonId = Long.parseLong(matchSpouseVO.getId());
+					person = personRepository.findByIdAndTenant(retrievePersonId, SecurityContext.getCurrentTenant())
+							.orElseThrow(() -> new AppException("Invalid Person Id ", null));
+					if (relatedPerson1VOList.size() > retrieveRelatives(person, requiredRelationTypesList).size()) {
+						LogManager.getLogger().debug("Picked Main");
+						forPersonsList.add(Long.parseLong(mainPersonVO.getId()));
+					} else {
+						LogManager.getLogger().debug("Picked Spouse");
+						forPersonsList.add(Long.parseLong(matchSpouseVO.getId()));
+					}
+				}
+				treeGraphVO.getNodes().remove(matchSpouseVO);
+			} else if (!mainPersonVO.isHasContributed()) {
+				LogManager.getLogger().debug("No matched, hence Main");
+				forPersonsList.add(Long.parseLong(mainPersonVO.getId()));
+			}
+			mainPersonInd++;
+		}
+		
+		retrieveRelationsRequestVO.setRequiredRelationsList(null);
+		for (long personId : forPersonsList) {
+				retrieveRelationsRequestVO.setStartPersonId(personId);
+				treeCsvContents.addAll(exportTree(retrieveRelationsRequestVO));
+				if (treeCsvContents.size() > Constants.EXPORT_TREE_MAX_ROWS) {
+					throw new AppException("You are not authorised to export such a huge data.", null);
+				}
+				treeCsvContents.add(new ArrayList<Object>());
+				treeCsvContents.add(new ArrayList<Object>());
+		}
+		return treeCsvContents;
 	}
 	
 	public List<List<Object>> exportTree(RetrieveRelationsRequestVO retrieveRelationsRequestVO) {

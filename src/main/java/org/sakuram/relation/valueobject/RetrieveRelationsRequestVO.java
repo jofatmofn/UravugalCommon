@@ -12,5 +12,5 @@ public class RetrieveRelationsRequestVO {
 	private long startPersonId;
 	private Short maxDepth;
 	private List<String> requiredRelationsList;
-
+	private String exportTreeType;
 }
