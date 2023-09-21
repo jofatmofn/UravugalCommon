@@ -558,7 +558,7 @@ public class PersonRelationService {
 			maxLevel = level;
 		}
 		// Person
-		exportWriteRow(personId, level * 2, false, personsMap, treeCsvContents);
+		exportWriteRow(personId, level * 2, false, personsMap, treeCsvContents, true);
 		
 		// Kids (Only one parent specified)
 		kidsList = getKids(personId, null, relationsList);
@@ -582,9 +582,8 @@ public class PersonRelationService {
 		    	attributeValue = fetchAttribute(null, relation, domainValue)
 						.orElse(null);
 			}
-			if (attributeValue == null) {	// Husband-Wife relation is still there OR they have kid(s)
-				exportWriteRow(spouseId, level * 2 + 1, isFirstSpouse, personsMap, treeCsvContents);
-			}
+			// attributeValue of null implies Husband-Wife relation is still there OR they have kid(s)
+			exportWriteRow(spouseId, level * 2 + 1, isFirstSpouse, personsMap, treeCsvContents, attributeValue == null);
 			isFirstSpouse = false;
 			
 			// Kids (Both parents are specified)
@@ -594,7 +593,7 @@ public class PersonRelationService {
 		}
 	}
 	
-	private void exportWriteRow(String personId, int index, boolean toReuseLastRow, Map<String, PersonVO> personsMap, List<List<Object>> treeCsvContents) {
+	private void exportWriteRow(String personId, int index, boolean toReuseLastRow, Map<String, PersonVO> personsMap, List<List<Object>> treeCsvContents, boolean toWrite) {
 		List<Object> treeCsvRow;
 		PersonVO personVO;
 		
@@ -606,7 +605,9 @@ public class PersonRelationService {
 		}
 		if(personsMap.containsKey(personId)) {
 			personVO = personsMap.get(personId);
-			UtilFuncs.listSet(treeCsvRow, index, personVO.getLabel(), null);
+			if (toWrite) {
+				UtilFuncs.listSet(treeCsvRow, index, personVO.getLabel(), null);
+			}
 			personVO.setY(treeCsvContents.indexOf(treeCsvRow));
 			personVO.setX(index);
 			LogManager.getLogger().debug(personVO.getId() + ":"  + personVO.getFirstName() + ":" + personVO.getY() + ":" + personVO.getX());
