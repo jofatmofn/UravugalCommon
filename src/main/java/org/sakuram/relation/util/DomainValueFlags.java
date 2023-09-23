@@ -8,8 +8,8 @@ import lombok.Setter;
 @Getter @Setter
 @NoArgsConstructor
 public class DomainValueFlags {
-	private String attributeDomain, repetitionType, validationJsRegEx, languageCode, relationGroup, privacyRestrictionType;
-	private Boolean isInputAsAttribute, isInputMandatory, isTranslatable;
+	private String attributeDomain, repetitionType, validationJsRegEx, languageCode, relationGroup, privacyRestrictionType, scriptConversionType;
+	private Boolean isInputAsAttribute, isInputMandatory, isScriptConvertible;
 	
 	public DomainValueFlags(DomainValue domainValue) {
 		setDomainValue(domainValue);
@@ -25,8 +25,9 @@ public class DomainValueFlags {
 		relationGroup = null;
 		isInputAsAttribute = null;
 		isInputMandatory = null;
-		isTranslatable = null;
+		isScriptConvertible = null;
 		privacyRestrictionType = null;
+		scriptConversionType = null;
 		
 		if (domainValue.getFlagsCsv() != null && !domainValue.getFlagsCsv().equals("")) {
 			flagsArr = domainValue.getFlagsCsv().split(Constants.CSV_SEPARATOR);
@@ -39,7 +40,6 @@ public class DomainValueFlags {
 				relationGroup = flagsArr[Constants.FLAG_POSITION_RELATION_GROUP];
 			}
 		} else if (domainValue.getCategory().equals(Constants.CATEGORY_PERSON_ATTRIBUTE) || domainValue.getCategory().equals(Constants.CATEGORY_RELATION_ATTRIBUTE)) {
-			isTranslatable = false;
 			if (flagsArr.length > Constants.FLAG_POSITION_INPUT_AS_ATTRIBUTE) {
 				isInputAsAttribute = Boolean.valueOf(flagsArr[Constants.FLAG_POSITION_INPUT_AS_ATTRIBUTE]);    				
 			}
@@ -54,12 +54,16 @@ public class DomainValueFlags {
 			}
 			if (flagsArr.length > Constants.FLAG_POSITION_VALIDATION_JS_REG_EX) {
 				validationJsRegEx = flagsArr[Constants.FLAG_POSITION_VALIDATION_JS_REG_EX];
-				if (validationJsRegEx.equals(Constants.TRANSLATABLE_REGEX)) {
-					isTranslatable = true;
-				}
 			}
 			if (flagsArr.length > Constants.FLAG_POSITION_PRIVACY_RESTRICTION) {
 				privacyRestrictionType = flagsArr[Constants.FLAG_POSITION_PRIVACY_RESTRICTION];
+			}
+			isScriptConvertible = false;
+			if (flagsArr.length > Constants.FLAG_POSITION_SCRIPT_CONVERSION) {
+				scriptConversionType = flagsArr[Constants.FLAG_POSITION_SCRIPT_CONVERSION];
+				if (!scriptConversionType.equals("")) {
+					isScriptConvertible = true;
+				}
 			}
 			if (domainValue.getCategory().equals(Constants.CATEGORY_RELATION_ATTRIBUTE) && flagsArr.length > Constants.FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP) {
 				relationGroup = flagsArr[Constants.FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP];

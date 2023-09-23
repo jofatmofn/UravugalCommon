@@ -752,6 +752,7 @@ public class PersonRelationService {
     		domainValueVO.setValidationJsRegEx(domainValueFlags.getValidationJsRegEx());
     		domainValueVO.setLanguageCode(domainValueFlags.getLanguageCode());
     		domainValueVO.setPrivacyRestrictionType(domainValueFlags.getPrivacyRestrictionType());
+    		domainValueVO.setIsScriptConvertible(domainValueFlags.getIsScriptConvertible());
     	}
     	
     	return domainValueVOList;
@@ -1010,7 +1011,7 @@ public class PersonRelationService {
     			attributeValue = attributeValueRepository.findByIdAndTenant(attributeValueVO.getId(), SecurityContext.getCurrentTenant())
     					.orElseThrow(() -> new AppException("Invalid Attribute Value Id " + attributeValueVO.getId(), null));
         		if (attributeValueVO.getAttributeValue() == null || attributeValueVO.getAttributeValue().equals("") ||
-        				domainValueFlags.getIsTranslatable() && !SecurityContext.getCurrentLanguageDvId().equals(Constants.DEFAULT_LANGUAGE_DV_ID) &&
+        				domainValueFlags.getIsScriptConvertible() && !SecurityContext.getCurrentLanguageDvId().equals(Constants.DEFAULT_LANGUAGE_DV_ID) &&
         				(attributeValueVO.getTranslatedValue() == null || attributeValueVO.getTranslatedValue().equals(""))) {
         			throw new AppException("Attribute value (and its translation, if applicable) cannot be null", null);
         		}
@@ -1295,7 +1296,7 @@ public class PersonRelationService {
 			querySB.append(attributeValue.substring(5));
 		} else {
 			querySB.append(" AND (");
-			if (Objects.equals(domainValueFlags.getValidationJsRegEx(), Constants.TRANSLATABLE_REGEX)) {	// Beware: PostgreSQL specific syntax
+			if (domainValueFlags.getIsScriptConvertible() != null && domainValueFlags.getIsScriptConvertible()) {	// Beware: PostgreSQL specific syntax below
 				if (isLenient) {
 					if (attributeValueList == null) {
 						attributeValueList = new ArrayList<String>();
@@ -1321,7 +1322,7 @@ public class PersonRelationService {
 				querySB.append(attributeValue.toLowerCase());
 				querySB.append("'");
 			}
-			if (domainValueFlags.getIsTranslatable() && !SecurityContext.getCurrentLanguageDvId().equals(Constants.DEFAULT_LANGUAGE_DV_ID)) {
+			if (domainValueFlags.getIsScriptConvertible() && !SecurityContext.getCurrentLanguageDvId().equals(Constants.DEFAULT_LANGUAGE_DV_ID)) {
 				querySB.append(" OR EXISTS (SELECT 1 FROM translation t WHERE t.attribute_value_fk = av.id AND LOWER(t.value) LIKE '%");	// Beware: PostgreSQL specific syntax
 				querySB.append(attributeValue.toLowerCase());
 				querySB.append("%')");

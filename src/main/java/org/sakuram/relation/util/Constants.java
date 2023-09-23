@@ -88,6 +88,8 @@ public class Constants {
 	public static final String FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_PUBLIC_ONLY = "PB";
 	public static final String FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_PRIVATE_ONLY = "PR";
 	public static final String FLAG_ATTRIBUTE_PRIVACY_RESTRICTION_INDIVIDUAL_CHOICE = "BR";
+	public static final String FLAG_ATTRIBUTE_SCRIPT_CONVERSION_TRANSLATE = "A";
+	public static final String FLAG_ATTRIBUTE_SCRIPT_CONVERSION_TRANSLITERATE = "I";
 
 	public static final int FLAG_POSITION_RELATION_GROUP = 0;
 	public static final int FLAG_POSITION_INPUT_AS_ATTRIBUTE = 0;
@@ -97,6 +99,7 @@ public class Constants {
 	public static final int FLAG_POSITION_VALIDATION_JS_REG_EX = 4;
 	public static final int FLAG_POSITION_PRIVACY_RESTRICTION = 5;
 	public static final int FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP = 6;
+	public static final int FLAG_POSITION_SCRIPT_CONVERSION = 7;
 	public static final int FLAG_POSITION_ISO_LANGUAGE_CODE = 0;
 
 	public static final String EDGE_TYPE_DIRECT_RELATION = "line";
@@ -116,7 +119,6 @@ public class Constants {
 	public static final long DEFAULT_LANGUAGE_DV_ID = 336;
 	public static final long ENGLISH_LANGUAGE_DV_ID = 336;
 	public static final long TAMIL_LANGUAGE_DV_ID = 51;
-	public static final String TRANSLATABLE_REGEX = "\\p{L}|[ \\u0BBE-\\u0BCD]";
 	public static final String UPLOAD_FUNCTION_CHECK_DUPLICATES = "ufCheckDuplicates";
 	public static final String UPLOAD_FUNCTION_STORE = "ufStore";
 	public static final String EXPORT_TREE_TYPE_FULL = "exportFullTree";

@@ -16,5 +16,5 @@ public class DomainValueVO {
 	private String validationJsRegEx;
 	private String languageCode;
 	private String privacyRestrictionType;
-
+	private Boolean isScriptConvertible;
 }

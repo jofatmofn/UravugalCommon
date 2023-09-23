@@ -26,7 +26,7 @@ import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
 import org.hibernate.annotations.Where;
-import org.sakuram.relation.util.Constants;
+import org.sakuram.relation.util.DomainValueFlags;
 import org.sakuram.relation.util.SecurityContext;
 import org.sakuram.relation.util.UtilFuncs;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -153,10 +153,12 @@ public class AttributeValue {
 	@PreUpdate
 	public void prePersist() {
 	    StringBuilder sb;
+	    DomainValueFlags domainValueFlags;
 	    
 	    tenant = SecurityContext.getCurrentTenant();
+	    domainValueFlags = new DomainValueFlags(attribute);
 	    
-	    if (attribute.getFlagsCsv().contains(Constants.TRANSLATABLE_REGEX)) {	// CONTAINS is not good, however it is simpler than using DomainValueFlags
+	    if (domainValueFlags.getIsScriptConvertible() != null && domainValueFlags.getIsScriptConvertible()) {
 		    sb = new StringBuilder();
 		    for (String alternative : UtilFuncs.normaliseForSearch(this.attributeValue)) {
 		    	sb.append("/");
