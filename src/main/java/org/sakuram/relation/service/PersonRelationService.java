@@ -1186,7 +1186,16 @@ public class PersonRelationService {
 		    		querySB.append(")))");
 	    		}
 	    		querySB.append(")");
+    		} else if (attributeValueVO.getAttributeDvId() == Constants.PERSON_ATTRIBUTE_DV_ID_ANY_NAME) {
+	    		querySB.append(" AND (");
+	    		for (long attributeDvId : Constants.PERSON_ATTRIBUTE_DV_IDS_ARRAY_NAME) {
+		    		querySB.append(buildQueryOneAv(attributeDvId, attributeValueVO.getAttributeValue(), personSearchCriteriaVO.isLenient(), "person_fk = p.id"));
+		    		querySB.append(" OR ");
+	    		}
+				querySB.delete(querySB.length() - 4, querySB.length());
+	    		querySB.append(")");
     		}
+
     	}
 		querySB.append(" ORDER BY p.id;");	// TODO Order by some match score
     	

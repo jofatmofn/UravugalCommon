@@ -18,13 +18,19 @@ public class Constants {
 	public static final long PERSON_ATTRIBUTE_DV_ID_LABEL = 16;
 	public static final long PERSON_ATTRIBUTE_DV_ID_GENDER = 19;
 	public static final long PERSON_ATTRIBUTE_DV_ID_FIRST_NAME = 20;
+	public static final long PERSON_ATTRIBUTE_DV_ID_MIDDLE_NAME = 21;
 	public static final long PERSON_ATTRIBUTE_DV_ID_SUR_NAME = 22;
+	public static final long PERSON_ATTRIBUTE_DV_ID_NICK_NAME = 314;
+	public static final long PERSON_ATTRIBUTE_DV_ID_NAME_PREFIX = 338;
 	public static final long PERSON_ATTRIBUTE_DV_ID_MANAGE_USER = 353;
 	public static final long PERSON_ATTRIBUTE_DV_ID_PERSON_ID = -1;
 	public static final long PERSON_ATTRIBUTE_DV_ID_PARENTS = -2;
 	public static final long PERSON_ATTRIBUTE_DV_ID_SPOUSES = -3;
 	public static final long PERSON_ATTRIBUTE_DV_ID_CHILDREN = -4;
 	public static final long PERSON_ATTRIBUTE_DV_ID_SIBLINGS = -5;
+	public static final long PERSON_ATTRIBUTE_DV_ID_ANY_NAME = -6;
+	public static final long[] PERSON_ATTRIBUTE_DV_IDS_ARRAY_NAME = {PERSON_ATTRIBUTE_DV_ID_LABEL, PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, PERSON_ATTRIBUTE_DV_ID_MIDDLE_NAME, 
+			PERSON_ATTRIBUTE_DV_ID_SUR_NAME, PERSON_ATTRIBUTE_DV_ID_NICK_NAME, PERSON_ATTRIBUTE_DV_ID_NAME_PREFIX};
 	public static final long RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2 = 34;
 	public static final long RELATION_ATTRIBUTE_DV_ID_PERSON2_FOR_PERSON1 = 35;
 	public static final long RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON1_FOR_PERSON2 = 61;
