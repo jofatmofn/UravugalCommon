@@ -12,5 +12,5 @@ public class RelatedPersonsVO {
 	private long creatorId;
 	private Long sourceId;
 	private String excludeRelationIdCsv;
-	
+	private String excludePersonIdCsv;
 }

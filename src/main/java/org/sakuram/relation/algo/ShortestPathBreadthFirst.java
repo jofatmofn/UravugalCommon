@@ -22,7 +22,7 @@ public class ShortestPathBreadthFirst {
 	@Autowired
 	RelationRepository relationRepository;
 	
-	public LinkedList<Person> findPathBiBFS(Map<Long, Person> people, long source, long destination, List<String> excludeRelationIdList) {
+	public LinkedList<Person> findPathBiBFS(Map<Long, Person> people, long source, long destination, List<String> excludeRelationIdList, List<String> excludePersonIdList) {
 		if (people.get(source) == null || people.get(destination) == null) {
 			throw new AppException("Person 1 and/or Person 2 do not belong to the project", null);
 		}
@@ -31,13 +31,13 @@ public class ShortestPathBreadthFirst {
 		
 		while (!sourceData.isFinished() && !destData.isFinished()) {
 			/* Search out from source. */
-			Person collision = searchLevel(people, sourceData, destData, excludeRelationIdList);
+			Person collision = searchLevel(people, sourceData, destData, excludeRelationIdList, excludePersonIdList);
 			if (collision != null) {
 				return mergePaths(sourceData, destData, collision.getId());
 			}
 			
 			/* Search out from destination. */
-			collision = searchLevel(people, destData, sourceData, excludeRelationIdList);
+			collision = searchLevel(people, destData, sourceData, excludeRelationIdList, excludePersonIdList);
 			if (collision != null) {
 				return mergePaths(sourceData, destData, collision.getId());
 			}
@@ -46,7 +46,7 @@ public class ShortestPathBreadthFirst {
 	}
 
 	/* Search one level and return collision, if any.*/
-	Person searchLevel(Map<Long, Person> people, BFSData primary, BFSData secondary, List<String> excludeRelationIdList) {
+	Person searchLevel(Map<Long, Person> people, BFSData primary, BFSData secondary, List<String> excludeRelationIdList, List<String> excludePersonIdList) {
 		/* We only want to search one level at a time. Count how many nodes are currently in the 
 		 * primary's level and only do that many nodes. We continue to add nodes to the end. */
 		int count = primary.toVisit.size();
@@ -69,13 +69,13 @@ public class ShortestPathBreadthFirst {
 	    	relatedPersonSet = new HashSet<Person>();
 	    	participatingRelationList = relationRepository.findByPerson1(person);
 	    	for (Relation relation : participatingRelationList) {
-	    		if (!excludeRelationIdList.contains(String.valueOf(relation.getId()))) {
+	    		if (!excludeRelationIdList.contains(String.valueOf(relation.getId())) && !excludePersonIdList.contains(String.valueOf(relation.getPerson2().getId()))) {
 	    			relatedPersonSet.add(relation.getPerson2());
 	    		}
 	    	}
 	    	participatingRelationList = relationRepository.findByPerson2(person);
 	    	for (Relation relation : participatingRelationList) {
-	    		if (!excludeRelationIdList.contains(String.valueOf(relation.getId()))) {
+	    		if (!excludeRelationIdList.contains(String.valueOf(relation.getId())) && !excludePersonIdList.contains(String.valueOf(relation.getPerson1().getId()))) {
 	    			relatedPersonSet.add(relation.getPerson1());
 	    		}
 	    	}

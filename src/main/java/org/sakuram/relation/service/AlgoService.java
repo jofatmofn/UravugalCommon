@@ -51,6 +51,7 @@ public class AlgoService {
     	Map<Long, Person> allPersonsMap;
     	LinkedList<Person> relatedPersonList;
     	List<String> excludeRelationIdList;
+    	List<String> excludePersonIdList;
     	XY xy;
     	int ind;
     	Relation relation;
@@ -61,13 +62,14 @@ public class AlgoService {
     	PersonVO personVO;
     	
     	excludeRelationIdList = Arrays.asList(relatedPersonsVO.getExcludeRelationIdCsv().split(", *"));
+    	excludePersonIdList = Arrays.asList(relatedPersonsVO.getExcludePersonIdCsv().split(", *"));
     	personList = personRepository.findAll();
     	allPersonsMap = new HashMap<Long, Person>(personList.size());
     	for (Person person : personList) {
     		allPersonsMap.put(person.getId(), person);
     	}
     	
-    	relatedPersonList = shortestPathBreadthFirst.findPathBiBFS(allPersonsMap, relatedPersonsVO.getPerson1Id(), relatedPersonsVO.getPerson2Id(), excludeRelationIdList);
+    	relatedPersonList = shortestPathBreadthFirst.findPathBiBFS(allPersonsMap, relatedPersonsVO.getPerson1Id(), relatedPersonsVO.getPerson2Id(), excludeRelationIdList, excludePersonIdList);
     	if (relatedPersonList == null) {
     		throw new AppException("No relation could be established between the two!", null);
     	}
@@ -90,9 +92,7 @@ public class AlgoService {
         				throw new AppException("No relation between " + relatedPersonList.get(ind).getId() + " and " + relatedPersonList.get(ind+1).getId() + "!", null);
         			}
     			}
-	    		if (!excludeRelationIdList.contains(String.valueOf(relation.getId()))) {
-	    			serviceParts.addToRelationVOList(relationVOList, relation, relatedPersonList.get(ind), true);
-	    		}
+    			serviceParts.addToRelationVOList(relationVOList, relation, relatedPersonList.get(ind), true);
     		}
     	}
     	
