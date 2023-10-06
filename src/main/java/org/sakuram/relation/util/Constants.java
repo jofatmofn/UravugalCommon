@@ -12,6 +12,7 @@ public class Constants {
 	public static final String CATEGORY_RELATION_NAME = "RelName";
 	public static final String CATEGORY_RELATION_SUB_TYPE = "RelSubType";
 	public static final String CATEGORY_PERSON_ATTRIBUTE = "PersAttribute";
+	public static final String CATEGORY_ADDITIONAL_PERSON_ATTRIBUTE = "AddlPersAttribute";
 	public static final String CATEGORY_RELATION_ATTRIBUTE = "RelAttribute";
 	public static final String CATEGORY_LANGUAGE = "Language";
 
@@ -23,12 +24,12 @@ public class Constants {
 	public static final long PERSON_ATTRIBUTE_DV_ID_NICK_NAME = 314;
 	public static final long PERSON_ATTRIBUTE_DV_ID_NAME_PREFIX = 338;
 	public static final long PERSON_ATTRIBUTE_DV_ID_MANAGE_USER = 353;
-	public static final long PERSON_ATTRIBUTE_DV_ID_PERSON_ID = -1;
-	public static final long PERSON_ATTRIBUTE_DV_ID_PARENTS = -2;
-	public static final long PERSON_ATTRIBUTE_DV_ID_SPOUSES = -3;
-	public static final long PERSON_ATTRIBUTE_DV_ID_CHILDREN = -4;
-	public static final long PERSON_ATTRIBUTE_DV_ID_SIBLINGS = -5;
-	public static final long PERSON_ATTRIBUTE_DV_ID_ANY_NAME = -6;
+	public static final long PERSON_ATTRIBUTE_DV_ID_PERSON_ID = 400;
+	public static final long PERSON_ATTRIBUTE_DV_ID_PARENTS = 401;
+	public static final long PERSON_ATTRIBUTE_DV_ID_SPOUSES = 402;
+	public static final long PERSON_ATTRIBUTE_DV_ID_CHILDREN = 403;
+	public static final long PERSON_ATTRIBUTE_DV_ID_SIBLINGS = 404;
+	public static final long PERSON_ATTRIBUTE_DV_ID_ANY_NAME = 405;
 	public static final long[] PERSON_ATTRIBUTE_DV_IDS_ARRAY_NAME = {PERSON_ATTRIBUTE_DV_ID_LABEL, PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, PERSON_ATTRIBUTE_DV_ID_MIDDLE_NAME, 
 			PERSON_ATTRIBUTE_DV_ID_SUR_NAME, PERSON_ATTRIBUTE_DV_ID_NICK_NAME, PERSON_ATTRIBUTE_DV_ID_NAME_PREFIX};
 	public static final long RELATION_ATTRIBUTE_DV_ID_PERSON1_FOR_PERSON2 = 34;
@@ -106,6 +107,7 @@ public class Constants {
 	public static final int FLAG_POSITION_PRIVACY_RESTRICTION = 5;
 	public static final int FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP = 6;
 	public static final int FLAG_POSITION_SCRIPT_CONVERSION = 7;
+	public static final int FLAG_POSITION_SEARCH_RESULT_COLUMN_INDEX = 8;
 	public static final int FLAG_POSITION_ISO_LANGUAGE_CODE = 0;
 
 	public static final String EDGE_TYPE_DIRECT_RELATION = "line";

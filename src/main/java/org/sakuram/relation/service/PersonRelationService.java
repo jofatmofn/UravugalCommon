@@ -1102,18 +1102,23 @@ public class PersonRelationService {
     	String attrVal, parentNamesSsv, spouseNamesSsv, childNamesSsv, ntrmdtQuery;
     	DomainValue domainValue;
     	boolean isPublicOnly;
+    	List<DomainValue> domainValueList;
+    	int personIdInd, parentNamesInd, spouseNamesInd, childNamesInd;
     	
     	attributeValueVOList = personSearchCriteriaVO.getAttributeValueVOList();
     	domainValueFlags = new DomainValueFlags();
     	querySB = new StringBuilder();
     	querySB.append("SELECT * FROM person p LEFT OUTER JOIN tenant t ON p.tenant_fk = t.id WHERE p.overwritten_by_fk IS NULL AND p.deleter_fk IS NULL");
-    	// TODO: AOP to take of the following if block
+    	// TODO: AOP to take care of the following if block
     	if (SecurityContext.getCurrentTenantId() != null) {
     		querySB.append(" AND p.tenant_fk = ");
     		querySB.append(SecurityContext.getCurrentTenantId());
     	}
     	for(AttributeValueVO attributeValueVO : attributeValueVOList) {
-    		if (attributeValueVO.getAttributeDvId() > 0 && (attributeValueVO.getAttributeDvId() != Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME ||
+    		domainValue = domainValueRepository.findById(attributeValueVO.getAttributeDvId())
+    				.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + attributeValueVO.getAttributeDvId(), null));
+			domainValueFlags.setDomainValue(domainValue);
+    		if (domainValue.getCategory().equals(Constants.CATEGORY_PERSON_ATTRIBUTE) && (attributeValueVO.getAttributeDvId() != Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME ||
     				!attributeValueVO.getAttributeValue().equalsIgnoreCase("X") && !attributeValueVO.getAttributeValue().equalsIgnoreCase("Y"))) {
 	    		querySB.append(" AND (");
 	    		querySB.append(buildQueryOneAv(attributeValueVO.getAttributeDvId(), attributeValueVO.getAttributeValue(), personSearchCriteriaVO.isLenient(), "person_fk = p.id"));
@@ -1212,11 +1217,30 @@ public class PersonRelationService {
     	searchResultsList = new ArrayList<List<String>>(Constants.SEARCH_RESULTS_MAX_COUNT);
     	personAttributesList = new ArrayList<String>(); // For Header
     	searchResultsList.add(personAttributesList);
-    	personAttributesList.add("Id");
-    	personAttributesList.add("Parents");
-    	personAttributesList.add("Spouses");
-    	personAttributesList.add("Children");
-    	attributesCount = 4;
+    	personIdInd = -1;
+    	parentNamesInd = -1;
+    	spouseNamesInd = -1;
+    	childNamesInd = -1;
+    	attributesCount = 0;
+    	domainValueList = domainValueRepository.findByCategoryOrderByValueAsc(Constants.CATEGORY_ADDITIONAL_PERSON_ATTRIBUTE);
+    	for (DomainValue dV : domainValueList) {
+			domainValueFlags.setDomainValue(dV);
+			if (domainValueFlags.getSearchResultColInd() != null) {
+				UtilFuncs.listSet(personAttributesList, domainValueFlags.getSearchResultColInd(), dV.getDvValue(), null);
+				attributesCount++;
+				if (dV.getId() == Constants.PERSON_ATTRIBUTE_DV_ID_PERSON_ID) {
+					personIdInd = domainValueFlags.getSearchResultColInd();
+				} else if (dV.getId() == Constants.PERSON_ATTRIBUTE_DV_ID_PARENTS) {
+					parentNamesInd = domainValueFlags.getSearchResultColInd();
+				} else if (dV.getId() == Constants.PERSON_ATTRIBUTE_DV_ID_SPOUSES) {
+					spouseNamesInd = domainValueFlags.getSearchResultColInd();
+				} else if (dV.getId() == Constants.PERSON_ATTRIBUTE_DV_ID_CHILDREN) {
+					childNamesInd = domainValueFlags.getSearchResultColInd();
+				} else {
+					throw new AppException("Unhandled additional person attribute " + dV.getValue(), null);
+				}
+			}
+    	}
     	searchResultsCount = 0;
     	
     	for(Person person : personList) {
@@ -1263,10 +1287,10 @@ public class PersonRelationService {
     			childNamesSsv += "/" + relativeAttributeEntry.getValue().getAvValue();
     		}
 
-    		personAttributesList.set(0, String.valueOf(person.getId()));
-    		personAttributesList.set(1, parentNamesSsv);
-    		personAttributesList.set(2, spouseNamesSsv);
-    		personAttributesList.set(3, childNamesSsv);
+    		personAttributesList.set(personIdInd, String.valueOf(person.getId()));
+    		personAttributesList.set(parentNamesInd, parentNamesSsv);
+    		personAttributesList.set(spouseNamesInd, spouseNamesSsv);
+    		personAttributesList.set(childNamesInd, childNamesSsv);
 
     		if (searchResultsCount == Constants.SEARCH_RESULTS_MAX_COUNT) {
     			break;

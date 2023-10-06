@@ -10,6 +10,7 @@ import lombok.Setter;
 public class DomainValueFlags {
 	private String attributeDomain, repetitionType, validationJsRegEx, languageCode, relationGroup, privacyRestrictionType, scriptConversionType;
 	private Boolean isInputAsAttribute, isInputMandatory, isScriptConvertible;
+	private Integer searchResultColInd;
 	
 	public DomainValueFlags(DomainValue domainValue) {
 		setDomainValue(domainValue);
@@ -28,6 +29,7 @@ public class DomainValueFlags {
 		isScriptConvertible = null;
 		privacyRestrictionType = null;
 		scriptConversionType = null;
+		searchResultColInd = null;
 		
 		if (domainValue.getFlagsCsv() != null && !domainValue.getFlagsCsv().equals("")) {
 			flagsArr = domainValue.getFlagsCsv().split(Constants.CSV_SEPARATOR);
@@ -39,7 +41,8 @@ public class DomainValueFlags {
 			if (flagsArr.length > Constants.FLAG_POSITION_RELATION_GROUP) {
 				relationGroup = flagsArr[Constants.FLAG_POSITION_RELATION_GROUP];
 			}
-		} else if (domainValue.getCategory().equals(Constants.CATEGORY_PERSON_ATTRIBUTE) || domainValue.getCategory().equals(Constants.CATEGORY_RELATION_ATTRIBUTE)) {
+		} else if (domainValue.getCategory().equals(Constants.CATEGORY_PERSON_ATTRIBUTE) || domainValue.getCategory().equals(Constants.CATEGORY_RELATION_ATTRIBUTE) ||
+				domainValue.getCategory().equals(Constants.CATEGORY_ADDITIONAL_PERSON_ATTRIBUTE)) {
 			if (flagsArr.length > Constants.FLAG_POSITION_INPUT_AS_ATTRIBUTE) {
 				isInputAsAttribute = Boolean.valueOf(flagsArr[Constants.FLAG_POSITION_INPUT_AS_ATTRIBUTE]);    				
 			}
@@ -58,6 +61,9 @@ public class DomainValueFlags {
 			if (flagsArr.length > Constants.FLAG_POSITION_PRIVACY_RESTRICTION) {
 				privacyRestrictionType = flagsArr[Constants.FLAG_POSITION_PRIVACY_RESTRICTION];
 			}
+			if (domainValue.getCategory().equals(Constants.CATEGORY_RELATION_ATTRIBUTE) && flagsArr.length > Constants.FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP) {
+				relationGroup = flagsArr[Constants.FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP];
+			}
 			isScriptConvertible = false;
 			if (flagsArr.length > Constants.FLAG_POSITION_SCRIPT_CONVERSION) {
 				scriptConversionType = flagsArr[Constants.FLAG_POSITION_SCRIPT_CONVERSION];
@@ -65,8 +71,8 @@ public class DomainValueFlags {
 					isScriptConvertible = true;
 				}
 			}
-			if (domainValue.getCategory().equals(Constants.CATEGORY_RELATION_ATTRIBUTE) && flagsArr.length > Constants.FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP) {
-				relationGroup = flagsArr[Constants.FLAG_POSITION_REL_ATTR_APPLICABLE_REL_GROUP];
+			if (domainValue.getCategory().equals(Constants.CATEGORY_ADDITIONAL_PERSON_ATTRIBUTE) && flagsArr.length > Constants.FLAG_POSITION_SEARCH_RESULT_COLUMN_INDEX) {
+				searchResultColInd = Integer.valueOf(flagsArr[Constants.FLAG_POSITION_SEARCH_RESULT_COLUMN_INDEX]);
 			}
 		} else if (domainValue.getCategory().equals(Constants.CATEGORY_LANGUAGE)) {
 			if (flagsArr.length > Constants.FLAG_POSITION_ISO_LANGUAGE_CODE) {

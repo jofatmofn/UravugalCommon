@@ -7,4 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface DomainValueRepository extends JpaRepository<DomainValue, Long>{
 	public List<DomainValue> findAllByOrderByCategoryAscValueAsc();
+	public List<DomainValue> findByCategoryOrderByValueAsc(String category);
 }
