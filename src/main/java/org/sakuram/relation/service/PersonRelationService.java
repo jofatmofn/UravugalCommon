@@ -85,15 +85,23 @@ public class PersonRelationService {
     	List<Relation> participatingRelationList;
     	Set<Person> relatedPersonSet;
     	int ind;
-    	List<RelatedPerson3VO> fatherRelatedPerson3VOList, motherRelatedPerson3VOList, spouseRelatedPerson3VOList, childRelatedPerson3VOList;
-    	
+    	List<RelatedPerson3VO> fatherRelatedPerson3VOList, motherRelatedPerson3VOList, spouseRelatedPerson3VOList, childRelatedPerson3VOList, siblingRelatedPerson3VOList;
+    	DomainValue person2ForPerson1Dv, sequenceOfPerson2ForPerson1Dv;
+    	AttributeValue attributeValue;
+    	List<Person> siblingList;
+    	List<Long> siblingIdList;
     	GraphVO retrieveRelationsResponseVO;
     	Map<Long, PersonVO> personVOMap;
     	List<Relation> relationList;
     	List<RelationVO> relationVOList;
     	RelatedPerson1VO relatedPerson1VO;
     	PersonVO personVO;
-    	    	
+
+    	sequenceOfPerson2ForPerson1Dv = domainValueRepository.findById(Constants.RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON2_FOR_PERSON1)
+				.orElseThrow(() -> new AppException("Domain Value missing: " + Constants.RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON2_FOR_PERSON1, null));
+    	person2ForPerson1Dv = domainValueRepository.findById(Constants.RELATION_ATTRIBUTE_DV_ID_PERSON2_FOR_PERSON1)
+				.orElseThrow(() -> new AppException("Domain Value missing: " + Constants.RELATION_ATTRIBUTE_DV_ID_PERSON2_FOR_PERSON1, null));
+		
     	relatedPersonSet = new HashSet<Person>();
     	startPerson = personRepository.findByIdAndTenant(retrieveRelationsRequestVO.getStartPersonId(), SecurityContext.getCurrentTenant())
 				.orElseThrow(() -> new AppException("Invalid Person Id " + retrieveRelationsRequestVO.getStartPersonId(), null));
@@ -102,9 +110,19 @@ public class PersonRelationService {
     	for (Relation relation : participatingRelationList) {
     		relatedPersonSet.add(relation.getPerson2());
     	}
+    	siblingIdList = new ArrayList<Long>();
     	participatingRelationList = relationRepository.findByPerson2(startPerson);
     	for (Relation relation : participatingRelationList) {
     		relatedPersonSet.add(relation.getPerson1());
+	    	attributeValue = fetchAttribute(null, relation, person2ForPerson1Dv)
+					.orElseThrow(() -> new AppException("Relation without PERSON2_FOR_PERSON1 attribute", null));
+	    	if (attributeValue.getAttributeValue().equals(Constants.RELATION_NAME_SON) || attributeValue.getAttributeValue().equals(Constants.RELATION_NAME_DAUGHTER)) {
+	    		siblingList = personRepository.findKids(relation.getPerson1().getId(), SecurityContext.getCurrentTenantId());
+	    		relatedPersonSet.addAll(siblingList);
+	    		for (Person person : siblingList) {
+	    			siblingIdList.add(person.getId());
+	    		}
+	    	}
     	}
     	
     	retrieveRelationsResponseVO = new GraphVO();
@@ -125,12 +143,20 @@ public class PersonRelationService {
     	motherRelatedPerson3VOList = new ArrayList<RelatedPerson3VO>();
     	spouseRelatedPerson3VOList = new ArrayList<RelatedPerson3VO>();
     	childRelatedPerson3VOList = new ArrayList<RelatedPerson3VO>();
+    	siblingRelatedPerson3VOList = new ArrayList<RelatedPerson3VO>();
     	relationList = relationRepository.findByPerson1InAndPerson2In(relatedPersonSet, relatedPersonSet);
     	for (Relation relation : relationList) {
     		relatedPerson1VO = serviceParts.addToRelationVOList(relationVOList, relation, startPerson, false);
-    		if (relatedPerson1VO.person != null) {	// Ignore Husband-Wife relation between parents
-	    		personVO = personVOMap.get(relatedPerson1VO.person.getId());
-	    		
+    		if (relatedPerson1VO.person == null) {	// (1) Siblings (2) Husband-Wife relation between parents
+				if (siblingIdList.contains(relation.getPerson2().getId())) { // Siblings
+	        		personVO = personVOMap.get(relation.getPerson2().getId());
+	        		System.out.println("Sibling ==> " + relation.getPerson2().getId());
+	        		attributeValue = fetchAttribute(null, relation, sequenceOfPerson2ForPerson1Dv).orElse(null);
+					siblingRelatedPerson3VOList.add(new RelatedPerson3VO(relation.getPerson2().getId(), Double.valueOf(attributeValue.getAttributeValue())));
+			    	personVO.setY(30);
+				}
+    		} else {
+        		personVO = personVOMap.get(relatedPerson1VO.person.getId());
 	    		if (relatedPerson1VO.relationDvId == null) {
 	        		personVO.setX(Math.random() * 100);
 	        		personVO.setY(Math.random() * 100);
@@ -163,26 +189,32 @@ public class PersonRelationService {
     	Collections.sort(fatherRelatedPerson3VOList);
     	ind = 0;
     	for (RelatedPerson3VO relatedPerson3VO : fatherRelatedPerson3VOList) {
-    		ind++;
-    		personVOMap.get(relatedPerson3VO.personId).setY(ind * 10);
+    		ind += 10;
+    		personVOMap.get(relatedPerson3VO.personId).setY(ind);
     	}
     	Collections.sort(motherRelatedPerson3VOList);
     	ind = 0;
     	for (RelatedPerson3VO relatedPerson3VO : motherRelatedPerson3VOList) {
-    		ind++;
-    		personVOMap.get(relatedPerson3VO.personId).setY(ind * 10);
+    		ind += 10;
+    		personVOMap.get(relatedPerson3VO.personId).setY(ind);
     	}
     	Collections.sort(spouseRelatedPerson3VOList);
-    	ind = -1;
+    	ind = 50;
     	for (RelatedPerson3VO relatedPerson3VO : spouseRelatedPerson3VOList) {
-    		ind++;
-    		personVOMap.get(relatedPerson3VO.personId).setY(60 + ind * 10);
+    		ind += 10;
+    		personVOMap.get(relatedPerson3VO.personId).setY(ind);
     	}
     	Collections.sort(childRelatedPerson3VOList);
     	ind = 0;
     	for (RelatedPerson3VO relatedPerson3VO : childRelatedPerson3VOList) {
-    		ind++;
-    		personVOMap.get(relatedPerson3VO.personId).setX(ind * 10);
+    		ind += 10;
+    		personVOMap.get(relatedPerson3VO.personId).setX(ind);
+    	}
+    	Collections.sort(siblingRelatedPerson3VOList);
+    	ind = 50;
+    	for (RelatedPerson3VO relatedPerson3VO : siblingRelatedPerson3VOList) {
+    		ind += 10;
+    		personVOMap.get(relatedPerson3VO.personId).setX(ind);
     	}
     	
     	retrieveRelationsResponseVO.setNodes(new ArrayList<PersonVO>(personVOMap.values()));
