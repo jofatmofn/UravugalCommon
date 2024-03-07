@@ -138,4 +138,14 @@ public class Constants {
 	public static final long ROLE_DV_ID_CREATOR = 332;
 	public static final long ROLE_DV_ID_COLLABORATOR = 333;
 	
+	public static final int UPLOAD_CELL_STRUCTURE_MIN_LEN = 2;
+	public static final int UPLOAD_CELL_STRUCTURE_MAX_LEN = 6;
+	public static final int UPLOAD_CELL_STRUCTURE_POSITION_SEQNO = 0;
+	public static final int UPLOAD_CELL_STRUCTURE_POSITION_FIRST_NAME = 1;
+	public static final int UPLOAD_CELL_STRUCTURE_POSITION_REFER_TO = 1;
+	public static final int UPLOAD_CELL_STRUCTURE_POSITION_GENDER = 2;
+	public static final int UPLOAD_CELL_STRUCTURE_POSITION_SUR_NAME = 3;
+	public static final int UPLOAD_CELL_STRUCTURE_POSITION_LABEL = 4;
+	public static final int UPLOAD_CELL_STRUCTURE_POSITION_REFERRED_AS = 5;
+	
 }
