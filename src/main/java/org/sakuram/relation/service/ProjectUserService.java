@@ -9,10 +9,12 @@ import org.sakuram.relation.bean.Privilege;
 import org.sakuram.relation.bean.Tenant;
 import org.sakuram.relation.repository.AppUserRepository;
 import org.sakuram.relation.repository.DomainValueRepository;
+import org.sakuram.relation.repository.PersonRepository;
 import org.sakuram.relation.repository.PrivilegeRepository;
 import org.sakuram.relation.repository.TenantRepository;
 import org.sakuram.relation.util.AppException;
 import org.sakuram.relation.util.Constants;
+import org.sakuram.relation.valueobject.ProjectVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,9 +30,13 @@ public class ProjectUserService {
 	PrivilegeRepository privilegeRepository;
 	@Autowired
 	DomainValueRepository domainValueRepository;
+	@Autowired
+	PersonRepository personRepository;
 	
-    public Long switchProject(String projectId) {
+    public ProjectVO switchProject(String projectId, Long userId) {
     	Tenant tenant;
+    	ProjectVO projectVO;
+    	
     	if (projectId == null) {
     		throw new AppException("Specify a Project to switch to", null);
     	}
@@ -38,7 +44,13 @@ public class ProjectUserService {
     	if (tenant == null) {
     		throw new AppException("Specified Project " + projectId + " does not exist", null);
     	}
-    	return tenant.getId();
+    	projectVO = new ProjectVO();
+    	projectVO.setTenantId(tenant.getId());
+    	projectVO.setProjectName(tenant.getProjectName());
+    	projectVO.setAppReadOnly(isAppReadOnly(tenant.getId(), userId));
+    	projectVO.setPersonCount(personRepository.countByTenant(tenant));
+
+    	return projectVO;
     }
 
     public Long findOrSaveUser(String identityProvider, String identityProviderUserId, String emailId) {

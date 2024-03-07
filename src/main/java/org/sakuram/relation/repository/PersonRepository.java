@@ -16,4 +16,6 @@ public interface PersonRepository extends JpaRepository<Person, Long>, PersonRep
 					"EXISTS (SELECT 1 FROM attribute_value av WHERE av.overwritten_by_fk IS NULL AND av.deleter_fk IS NULL " +
 					"AND av.relation_fk = r.id AND av.attribute_fk = 35 AND av.attribute_value IN ('5', '6')))")
 	public List<Person> findKids(@Param("person1") long person1, @Param("tenant") long tenant);
+	
+	public long countByTenant(Tenant tenant);
 }
