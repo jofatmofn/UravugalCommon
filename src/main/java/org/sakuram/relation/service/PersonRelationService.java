@@ -148,7 +148,7 @@ public class PersonRelationService {
     	for (Relation relation : relationList) {
     		relatedPerson1VO = serviceParts.addToRelationVOList(relationVOList, relation, startPerson, false);
     		if (relatedPerson1VO.person == null) {	// (1) Siblings (2) Husband-Wife relation between parents
-				if (siblingIdList.contains(relation.getPerson2().getId())) { // Siblings
+				if (siblingIdList.contains(relation.getPerson2().getId()) && !siblingRelatedPerson3VOList.contains(new RelatedPerson3VO(relation.getPerson2().getId(), 0))) { // Sibling && Not in list already
 	        		personVO = personVOMap.get(relation.getPerson2().getId());
 	        		System.out.println("Sibling ==> " + relation.getPerson2().getId());
 	        		attributeValue = fetchAttribute(null, relation, sequenceOfPerson2ForPerson1Dv).orElse(null);
@@ -207,13 +207,13 @@ public class PersonRelationService {
     	Collections.sort(childRelatedPerson3VOList);
     	ind = 0;
     	for (RelatedPerson3VO relatedPerson3VO : childRelatedPerson3VOList) {
-    		ind += 10;
+    		ind += 20;
     		personVOMap.get(relatedPerson3VO.personId).setX(ind);
     	}
     	Collections.sort(siblingRelatedPerson3VOList);
     	ind = 50;
     	for (RelatedPerson3VO relatedPerson3VO : siblingRelatedPerson3VOList) {
-    		ind += 10;
+    		ind += 20;
     		personVOMap.get(relatedPerson3VO.personId).setX(ind);
     	}
     	
@@ -2204,6 +2204,10 @@ public class PersonRelationService {
     	public int compareTo(RelatedPerson3VO relatedPerson3VO) {
     		return (this.seqNo < relatedPerson3VO.seqNo ? -1 : this.seqNo == relatedPerson3VO.seqNo ? 0 : 1);
     	}
+    	
+        public boolean equals(Object relatedPerson3VO) {
+        	return this.personId == ((RelatedPerson3VO)relatedPerson3VO).personId;
+        }
     }
     
     protected class TreeIntermediateOut1VO {
