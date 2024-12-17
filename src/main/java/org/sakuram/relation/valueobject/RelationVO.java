@@ -49,7 +49,7 @@ public class RelationVO {
 		if (label != null) {
 			return;
 		}
-		label = Constants.RELATION_LABEL_TEMPLATE;
+		label = Constants.RELATION_LABEL_TEMPLATE.replaceAll("@@person1@@", source).replaceAll("@@person2@@", target);
 		for (Map.Entry<Long, String> attributeEntry : attributeTranslatedMap.entrySet()) {
 			label = label.replaceAll("@@" + attributeEntry.getKey() + "@@", attributeEntry.getValue());
 		}

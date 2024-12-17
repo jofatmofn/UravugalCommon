@@ -321,7 +321,7 @@ public class PersonRelationService {
 			    				currInd = (int) (readInd + relatedPerson1VO.seqNo);
 			    				LogManager.getLogger().debug(" at index " + currInd);
 			    				if (currInd >= relatedPerson2VOList.size()) {
-				    				if (relatedPerson2VOList.size() == Constants.EXPORT_TREE_MAX_PERSONS) {
+				    				if (relatedPerson2VOList.size() == Constants.EXPORT_TREE_MAX_PERSONS && Constants.EXPORT_TREE_MAX_PERSONS != 0) {
 				    					throw new AppException("You are not authorised to export such a huge data.", null);
 				    				}
 									relatedPerson2VOList.add(relatedPerson2VO);
@@ -520,7 +520,7 @@ public class PersonRelationService {
 		for (long personId : forPersonsList) {
 				retrieveRelationsRequestVO.setStartPersonId(personId);
 				treeCsvContents.addAll(exportTree(retrieveRelationsRequestVO));
-				if (treeCsvContents.size() > Constants.EXPORT_TREE_MAX_ROWS) {
+				if (treeCsvContents.size() > Constants.EXPORT_TREE_MAX_ROWS && Constants.EXPORT_TREE_MAX_ROWS != 0) {
 					throw new AppException("You are not authorised to export such a huge data.", null);
 				}
 				treeCsvContents.add(new ArrayList<Object>());

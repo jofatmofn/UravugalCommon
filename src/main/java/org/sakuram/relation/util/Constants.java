@@ -120,10 +120,10 @@ public class Constants {
 	public static final double DEFAULT_EDGE_SIZE = 5.0;
 	public static final long DELETED_ATTRIBUTE_VALUE_ID = -1L;
 	public static final int SEARCH_RESULTS_MAX_COUNT = 20;
-	public static final String RELATION_LABEL_TEMPLATE = "@@34@@(@@61@@)-@@35@@(@@62@@)(@@36@@)"; // TODO: Replace the hard-coded value with Constant
+	public static final String RELATION_LABEL_TEMPLATE = "@@person1@@:@@34@@(@@61@@)-@@person2@@:@@35@@(@@62@@)(@@36@@)"; // TODO: Replace the hard-coded value with Constant
 	public static final short EXPORT_TREE_MAX_DEPTH = 10;
-	public static final short EXPORT_TREE_MAX_ROWS = 300;
-	public static final short EXPORT_TREE_MAX_PERSONS = 500;
+	public static final short EXPORT_TREE_MAX_ROWS = 0;
+	public static final short EXPORT_TREE_MAX_PERSONS = 0;
 	public static final long DEFAULT_LANGUAGE_DV_ID = 336;
 	public static final long ENGLISH_LANGUAGE_DV_ID = 336;
 	public static final long TAMIL_LANGUAGE_DV_ID = 51;
