@@ -13,18 +13,17 @@ import lombok.Setter;
 @Getter @Setter
 public class RelationVO {
 
-	private String id;
+	private String key;
 	private String source;
 	private String target;
-	private String label;
-	private double size;
-	private String type;
+	private EdgeAttributesVO attributes;
 	@JsonIgnore private String relationLabel;
 	@JsonIgnore private Map<Long, String> attributeMap;
 	@JsonIgnore private Map<Long, String> attributeTranslatedMap;
 	@JsonIgnore private boolean toSwap;
 
 	public RelationVO() {
+		attributes = new EdgeAttributesVO();
 		attributeMap = new HashMap<Long, String>();
 		attributeTranslatedMap = new HashMap<Long, String>();
 	}
@@ -46,15 +45,15 @@ public class RelationVO {
 	}
 
 	public void determineLabel(boolean toIncludeRelationId) {
-		if (label != null) {
+		if (attributes.getLabel() != null) {
 			return;
 		}
-		label = Constants.RELATION_LABEL_TEMPLATE.replaceAll("@@person1@@", source).replaceAll("@@person2@@", target);
+		attributes.setLabel(Constants.RELATION_LABEL_TEMPLATE.replaceAll("@@person1@@", source).replaceAll("@@person2@@", target));
 		for (Map.Entry<Long, String> attributeEntry : attributeTranslatedMap.entrySet()) {
-			label = label.replaceAll("@@" + attributeEntry.getKey() + "@@", attributeEntry.getValue());
+			attributes.setLabel(attributes.getLabel().replaceAll("@@" + attributeEntry.getKey() + "@@", attributeEntry.getValue()));
 		}
 		// Beware: Because of the ids 34, 35, 36, 61, 62, the pattern \d\d is used below
-		label = (toIncludeRelationId ? "<" + id + ">" : "") + label.replaceAll("@@\\d\\d@@", "").replaceAll("\\(\\)", "");
+		attributes.setLabel((toIncludeRelationId ? "<" + key + ">" : "") + attributes.getLabel().replaceAll("@@\\d\\d@@", "").replaceAll("\\(\\)", ""));
 	}
 
 	public String getAttribute(long attributeDvId) {
@@ -99,7 +98,7 @@ public class RelationVO {
 		sb.append(target);
 		sb.append("\n");
 		sb.append("Label: ");
-		sb.append(label);
+		sb.append(attributes.getLabel());
 		sb.append("\n");
 		for (Entry<Long, String> attributeEntry : attributeMap.entrySet()) {
 			sb.append(attributeEntry.getKey());

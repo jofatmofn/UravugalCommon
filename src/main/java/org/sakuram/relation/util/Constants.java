@@ -111,7 +111,7 @@ public class Constants {
 	public static final int FLAG_POSITION_ISO_LANGUAGE_CODE = 0;
 
 	public static final String EDGE_TYPE_DIRECT_RELATION = "line";
-	public static final String EDGE_TYPE_SIMPLIFIED_RELATION = "dotCurve";
+	public static final String EDGE_TYPE_SIMPLIFIED_RELATION = "curve";
 	
 	public static final String CSV_SEPARATOR = ",";
 	public static final long NEW_ENTITY_ID = -1L;

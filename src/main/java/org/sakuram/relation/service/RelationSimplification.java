@@ -70,11 +70,11 @@ public class RelationSimplification {
 						additionalRelationVOList.add(relationVO);
 						newSimplifiedRelationVOList.add(relationVO);
 						simpleRelationInd++;
-						relationVO.setId("S"+String.valueOf(simpleRelationInd));
+						relationVO.setKey("S"+String.valueOf(simpleRelationInd));
 						relationVO.determineSource(simplifiedRelationVOList.get(ind1).getSource());
 						relationVO.determineTarget(simplifiedRelationVOList.get(ind1 + ind2 - 1).getTarget());
-						relationVO.setSize(0.5);
-						relationVO.setType(Constants.EDGE_TYPE_SIMPLIFIED_RELATION);
+						relationVO.getAttributes().setSize(2.0);
+						relationVO.getAttributes().setType(Constants.EDGE_TYPE_SIMPLIFIED_RELATION);
 						relName1Dv = domainValueRepository.findById(Long.valueOf(simplifiedRelation.person1ForPerson2DvId))
 								.orElseThrow(() -> new AppException("Invalid Dv Id ", null));
 						relName2Dv = domainValueRepository.findById(Long.valueOf(simplifiedRelation.person2ForPerson1DvId))

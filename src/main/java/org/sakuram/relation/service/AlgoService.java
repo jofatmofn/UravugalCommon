@@ -82,8 +82,8 @@ public class AlgoService {
 			LogManager.getLogger().debug("Person: " + relatedPersonList.get(ind).getId());
     		personVO = serviceParts.addToPersonVOMap(personVOMap, relatedPersonList.get(ind));
     		xy = patternBasedXY.getNextXY();
-    		personVO.setX(xy.x);
-    		personVO.setY(xy.y);
+    		personVO.getAttributes().setX(xy.x);
+    		personVO.getAttributes().setY(xy.y);
     		if (ind < relatedPersonList.size() - 1) {
     			relation = relationRepository.findByPerson1AndPerson2(relatedPersonList.get(ind), relatedPersonList.get(ind+1));
     			if (relation == null) {

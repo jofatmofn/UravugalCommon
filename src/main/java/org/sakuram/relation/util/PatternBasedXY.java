@@ -34,10 +34,10 @@ public class PatternBasedXY {
 				x = x - incr;
 				break;
 			case 'U':
-				y = y - incr;
+				y = y + incr;
 				break;
 			case 'D':
-				y = y + incr;
+				y = y - incr;
 				break;
 			}
 		}

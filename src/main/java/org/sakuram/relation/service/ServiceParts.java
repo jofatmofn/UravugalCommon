@@ -32,9 +32,9 @@ public class ServiceParts {
 		personVO = new PersonVO();
 		personVOMap.put(person.getId(), personVO);
 		
-		personVO.setId(String.valueOf(person.getId()));
-		personVO.setSize(5.0);
-		personVO.setColor(Constants.DEFAULT_NODE_COLOR);
+		personVO.setKey(String.valueOf(person.getId()));
+		personVO.getAttributes().setSize(5.0);
+		personVO.getAttributes().setColor(Constants.DEFAULT_NODE_COLOR);
 		
 		for (AttributeValue attributeValue : person.getAttributeValueList()) {
     		if ((attributeValue.getStartDate() == null || attributeValue.getStartDate().toLocalDate().isBefore(LocalDate.now())) &&
@@ -69,9 +69,9 @@ public class ServiceParts {
     	domainValueFlags = new DomainValueFlags();
     	relatedPerson1VO = new RelatedPerson1VO();
 		
-		relationVO.setId(String.valueOf(relation.getId()));
-		relationVO.setSize(0.5);
-		relationVO.setType(Constants.EDGE_TYPE_DIRECT_RELATION);
+		relationVO.setKey(String.valueOf(relation.getId()));
+		relationVO.getAttributes().setSize(2.0);
+		relationVO.getAttributes().setType(Constants.EDGE_TYPE_DIRECT_RELATION);
 		if (relation.getPerson1().equals(startPerson)) {
 			relatedPerson1VO.person = relation.getPerson2();
 			otherPersonId = String.valueOf(relation.getPerson2().getId());

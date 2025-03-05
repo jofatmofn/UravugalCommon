@@ -134,8 +134,8 @@ public class PersonRelationService {
     	for (Person person : relatedPersonSet) {
     		personVO = serviceParts.addToPersonVOMap(personVOMap, person);
     		if (person.equals(startPerson)) {
-        		personVO.setX(10);
-        		personVO.setY(60);
+        		personVO.getAttributes().setX(10);
+        		personVO.getAttributes().setY(60);
     		}
     	}
     	
@@ -153,33 +153,33 @@ public class PersonRelationService {
 	        		System.out.println("Sibling ==> " + relation.getPerson2().getId());
 	        		attributeValue = fetchAttribute(null, relation, sequenceOfPerson2ForPerson1Dv).orElse(null);
 					siblingRelatedPerson3VOList.add(new RelatedPerson3VO(relation.getPerson2().getId(), attributeValue == null ? 0 : Double.valueOf(attributeValue.getAttributeValue())));
-			    	personVO.setY(30);
+			    	personVO.getAttributes().setY(90);
 				}
     		} else {
         		personVO = personVOMap.get(relatedPerson1VO.person.getId());
 	    		if (relatedPerson1VO.relationDvId == null) {
-	        		personVO.setX(Math.random() * 100);
-	        		personVO.setY(Math.random() * 100);
+	        		personVO.getAttributes().setX(Math.random() * 100);
+	        		personVO.getAttributes().setY(Math.random() * 100);
 	    		}
 	    		else {
 					switch(relatedPerson1VO.relationDvId) {
 					case Constants.RELATION_NAME_FATHER:
 						fatherRelatedPerson3VOList.add(new RelatedPerson3VO(relatedPerson1VO.person.getId(), relatedPerson1VO.seqNo));
-						personVO.setX(25);
+						personVO.getAttributes().setX(25);
 			    		break;
 					case Constants.RELATION_NAME_MOTHER:
 						motherRelatedPerson3VOList.add(new RelatedPerson3VO(relatedPerson1VO.person.getId(), relatedPerson1VO.seqNo));
-						personVO.setX(85);
+						personVO.getAttributes().setX(85);
 			    		break;
 					case Constants.RELATION_NAME_HUSBAND:
 					case Constants.RELATION_NAME_WIFE:
 						spouseRelatedPerson3VOList.add(new RelatedPerson3VO(relatedPerson1VO.person.getId(), relatedPerson1VO.seqNo));
-						personVO.setX(100);
+						personVO.getAttributes().setX(100);
 			    		break;
 					case Constants.RELATION_NAME_SON:
 					case Constants.RELATION_NAME_DAUGHTER:
 						childRelatedPerson3VOList.add(new RelatedPerson3VO(relatedPerson1VO.person.getId(), relatedPerson1VO.seqNo));
-				    	personVO.setY(120);
+				    	personVO.getAttributes().setY(0);
 			    		break;
 					}
 	    		}
@@ -187,34 +187,34 @@ public class PersonRelationService {
     	}
 
     	Collections.sort(fatherRelatedPerson3VOList);
-    	ind = 0;
+    	ind = 120;
     	for (RelatedPerson3VO relatedPerson3VO : fatherRelatedPerson3VOList) {
-    		ind += 10;
-    		personVOMap.get(relatedPerson3VO.personId).setY(ind);
+    		ind -= 10;
+    		personVOMap.get(relatedPerson3VO.personId).getAttributes().setY(ind);
     	}
     	Collections.sort(motherRelatedPerson3VOList);
-    	ind = 0;
+    	ind = 120;
     	for (RelatedPerson3VO relatedPerson3VO : motherRelatedPerson3VOList) {
-    		ind += 10;
-    		personVOMap.get(relatedPerson3VO.personId).setY(ind);
+    		ind -= 10;
+    		personVOMap.get(relatedPerson3VO.personId).getAttributes().setY(ind);
     	}
     	Collections.sort(spouseRelatedPerson3VOList);
-    	ind = 50;
+    	ind = 70;
     	for (RelatedPerson3VO relatedPerson3VO : spouseRelatedPerson3VOList) {
-    		ind += 10;
-    		personVOMap.get(relatedPerson3VO.personId).setY(ind);
+    		ind -= 10;
+    		personVOMap.get(relatedPerson3VO.personId).getAttributes().setY(ind);
     	}
     	Collections.sort(childRelatedPerson3VOList);
     	ind = 0;
     	for (RelatedPerson3VO relatedPerson3VO : childRelatedPerson3VOList) {
     		ind += 20;
-    		personVOMap.get(relatedPerson3VO.personId).setX(ind);
+    		personVOMap.get(relatedPerson3VO.personId).getAttributes().setX(ind);
     	}
     	Collections.sort(siblingRelatedPerson3VOList);
     	ind = 50;
     	for (RelatedPerson3VO relatedPerson3VO : siblingRelatedPerson3VOList) {
     		ind += 20;
-    		personVOMap.get(relatedPerson3VO.personId).setX(ind);
+    		personVOMap.get(relatedPerson3VO.personId).getAttributes().setX(ind);
     	}
     	
     	retrieveRelationsResponseVO.setNodes(new ArrayList<PersonVO>(personVOMap.values()));
@@ -269,8 +269,8 @@ public class PersonRelationService {
 				.orElseThrow(() -> new AppException("Invalid Person Id " + retrieveRelationsRequestVO.getStartPersonId(), null));
 		relatedPersonIdSet.add(startPerson.getId());
 		currentPersonVO = serviceParts.addToPersonVOMap(personVOMap, startPerson);
-		currentPersonVO.setX(0);
-		currentPersonVO.setY(0);
+		currentPersonVO.getAttributes().setX(0);
+		currentPersonVO.getAttributes().setY(0);
 		if (retrieveRelationsRequestVO.getRequiredRelationsList() == null || retrieveRelationsRequestVO.getRequiredRelationsList().isEmpty()) {
 			retrieveRelationsRequestVO.setRequiredRelationsList(Arrays.asList(Constants.RELATION_NAME_HUSBAND, Constants.RELATION_NAME_WIFE, Constants.RELATION_NAME_SON, Constants.RELATION_NAME_DAUGHTER));
 		}
@@ -313,11 +313,11 @@ public class PersonRelationService {
 							relatedPerson2VO.person = relatedPerson1VO.person;
 							relatedPerson2VO.parentInd = readInd;
 				    		relatedPersonVO = serviceParts.addToPersonVOMap(personVOMap, relatedPerson1VO.person);
-							LogManager.getLogger().debug("Added person: " + relatedPersonVO.getLabel());
+							LogManager.getLogger().debug("Added person: " + relatedPersonVO.getAttributes().getLabel());
 				    		if (relatedPerson1VO.relationDvId.equals(Constants.RELATION_NAME_HUSBAND) || relatedPerson1VO.relationDvId.equals(Constants.RELATION_NAME_WIFE)) {
 				    			relatedPerson2VO.level = currentLevel;
 				    			relatedPerson2VO.isSpouse = true;
-			    				sequence = currentPersonVO.getX() + relatedPerson1VO.seqNo;
+			    				sequence = currentPersonVO.getAttributes().getX() + relatedPerson1VO.seqNo;
 			    				currInd = (int) (readInd + relatedPerson1VO.seqNo);
 			    				LogManager.getLogger().debug(" at index " + currInd);
 			    				if (currInd >= relatedPerson2VOList.size()) {
@@ -329,11 +329,11 @@ public class PersonRelationService {
 									relatedPerson2VOList.add(currInd, relatedPerson2VO);
 			    					shiftX(personVOMap, relatedPerson2VOList, currInd + 1, 1);
 			    				}
-								LogManager.getLogger().debug("currentPersonVO.getX(): " + currentPersonVO.getX() + ". relatedPerson1VO.seqNo: " + relatedPerson1VO.seqNo);
+								LogManager.getLogger().debug("currentPersonVO.getX(): " + currentPersonVO.getAttributes().getX() + ". relatedPerson1VO.seqNo: " + relatedPerson1VO.seqNo);
 								LogManager.getLogger().debug("relatedPerson2VO.level: " + relatedPerson2VO.level + ". Initial sequence: " + sequence);
 								relatedPerson2VO.sequence = sequence;
-								relatedPersonVO.setX(sequence);
-								relatedPersonVO.setY(currentPersonVO.getY());
+								relatedPersonVO.getAttributes().setX(sequence);
+								relatedPersonVO.getAttributes().setY(currentPersonVO.getAttributes().getY());
 								if (sequence > seqAtLevel.get(currentLevel)) {
 					    			seqAtLevel.set(currentLevel, sequence);
 								}
@@ -354,8 +354,8 @@ public class PersonRelationService {
 				    			relatedPerson2VO.isFirstKid = false;
 				    			if (isFirstKid) {
 					    			relatedPerson2VO.isFirstKid = true;
-				    				if (currentPersonVO.getX() >= sequence) {	// Position of child
-				    					sequence = currentPersonVO.getX();
+				    				if (currentPersonVO.getAttributes().getX() >= sequence) {	// Position of child
+				    					sequence = currentPersonVO.getAttributes().getX();
 				    				}
 				    				isFirstKid = false;
 				    			}
@@ -363,8 +363,8 @@ public class PersonRelationService {
 								LogManager.getLogger().debug("sequence: " + sequence);
 				    			seqAtLevel.set(level, sequence);
 								relatedPerson2VO.sequence = sequence;
-								relatedPersonVO.setX(sequence);
-								relatedPersonVO.setY(level);
+								relatedPersonVO.getAttributes().setX(sequence);
+								relatedPersonVO.getAttributes().setY(level);
 				    		}
 				    		LogManager.getLogger().debug("Added person: " + relatedPerson2VO.person.getId() + " at level " + relatedPerson2VO.level);
 
@@ -396,12 +396,12 @@ public class PersonRelationService {
 				{
 					relatedPerson2VO = relatedPerson2VOList.get(ind2);
 					currentPersonVO = personVOMap.get(relatedPerson2VO.person.getId());
-					currentPersonVO.setX(relatedPerson2VO.sequence);
+					currentPersonVO.getAttributes().setX(relatedPerson2VO.sequence);
 					if (relatedPerson2VO.isFirstKid) {
 						parentRelatedPerson2VO = relatedPerson2VOList.get(relatedPerson2VO.parentInd);
-						LogManager.getLogger().debug("Current Person: " + currentPersonVO.getId() + " : " + currentPersonVO.getX() + " : " + currentPersonVO.getY());
+						LogManager.getLogger().debug("Current Person: " + currentPersonVO.getKey() + " : " + currentPersonVO.getAttributes().getX() + " : " + currentPersonVO.getAttributes().getY());
 						parentPersonVO = personVOMap.get(parentRelatedPerson2VO.person.getId());
-						LogManager.getLogger().debug("Parent Person: " + parentPersonVO.getId() + " : " + parentPersonVO.getX() + " : " + parentPersonVO.getY());
+						LogManager.getLogger().debug("Parent Person: " + parentPersonVO.getKey() + " : " + parentPersonVO.getAttributes().getX() + " : " + parentPersonVO.getAttributes().getY());
 						sequenceAdjustment = relatedPerson2VO.sequence - parentRelatedPerson2VO.sequence;
 						if (sequenceAdjustment < 0) {
 							shiftX(personVOMap, relatedPerson2VOList, ind2, (float) (0 - sequenceAdjustment));	// Shift Child
@@ -424,7 +424,7 @@ public class PersonRelationService {
     	
 		personVOList = new ArrayList<PersonVO>(personVOMap.values());
 		for (PersonVO personVO : personVOList) {
-			LogManager.getLogger().debug(personVO.getId() + "/"  + personVO.getFirstName() + "/" + personVO.getY() + "/" + personVO.getX());
+			LogManager.getLogger().debug(personVO.getKey() + "/"  + personVO.getFirstName() + "/" + personVO.getAttributes().getY() + "/" + personVO.getAttributes().getX());
 		}
     	retrieveRelationsResponseVO.setNodes(personVOList);
     	return retrieveRelationsResponseVO;
@@ -442,7 +442,7 @@ public class PersonRelationService {
 			relatedPerson2VO = relatedPerson2VOList.get(ind);
 			personVO = personVOMap.get(relatedPerson2VO.person.getId());
 			if (relatedPerson2VO.level != firstRelatedPerson2VO.level) break;
-			LogManager.getLogger().debug("Shift: " + personVO.getId() + ", Level: " + personVO.getY() + ", Sequence: " + relatedPerson2VO.sequence + ", Shift: " + shiftBy);
+			LogManager.getLogger().debug("Shift: " + personVO.getKey() + ", Level: " + personVO.getAttributes().getY() + ", Sequence: " + relatedPerson2VO.sequence + ", Shift: " + shiftBy);
 			
 			sequence = relatedPerson2VO.sequence;
 			if (ind == toShiftInd) {
@@ -452,7 +452,7 @@ public class PersonRelationService {
 			}
 			LogManager.getLogger().debug("New sequence: " + sequence);
 			relatedPerson2VO.sequence = sequence;
-			personVO.setX(sequence);
+			personVO.getAttributes().setX(sequence);
 			ind++;
 		}
 	}
@@ -475,8 +475,8 @@ public class PersonRelationService {
 		mainPersonInd = 0;
 		while (mainPersonInd < treeGraphVO.getNodes().size()) {
 			mainPersonVO = treeGraphVO.getNodes().get(mainPersonInd);
-			LogManager.getLogger().debug("Main Person: " + mainPersonVO.getLabel());
-			retrievePersonId = Long.parseLong(mainPersonVO.getId());
+			LogManager.getLogger().debug("Main Person: " + mainPersonVO.getAttributes().getLabel());
+			retrievePersonId = Long.parseLong(mainPersonVO.getKey());
 			person = personRepository.findByIdAndTenant(retrievePersonId, SecurityContext.getCurrentTenant())
 					.orElseThrow(() -> new AppException("Invalid Person Id ", null));
 	    	
@@ -488,30 +488,30 @@ public class PersonRelationService {
 			while (matchSpouseInd < treeGraphVO.getNodes().size()) {
 				matchSpouseVO = treeGraphVO.getNodes().get(matchSpouseInd);
 				for (RelatedPerson1VO relatedPerson1VO : relatedPerson1VOList) {
-					if (Long.parseLong(matchSpouseVO.getId()) == relatedPerson1VO.person.getId()) {
+					if (Long.parseLong(matchSpouseVO.getKey()) == relatedPerson1VO.person.getId()) {
 						break match;
 					}
 				}
 				matchSpouseInd++;
 			}
 			if (matchSpouseInd < treeGraphVO.getNodes().size()) {
-				LogManager.getLogger().debug("Matching Spouse: " + matchSpouseVO.getLabel());
+				LogManager.getLogger().debug("Matching Spouse: " + matchSpouseVO.getAttributes().getLabel());
 				if (!mainPersonVO.isHasContributed() && !matchSpouseVO.isHasContributed()) {
-					retrievePersonId = Long.parseLong(matchSpouseVO.getId());
+					retrievePersonId = Long.parseLong(matchSpouseVO.getKey());
 					person = personRepository.findByIdAndTenant(retrievePersonId, SecurityContext.getCurrentTenant())
 							.orElseThrow(() -> new AppException("Invalid Person Id ", null));
 					if (relatedPerson1VOList.size() > retrieveRelatives(person, requiredRelationTypesList).size()) {
 						LogManager.getLogger().debug("Picked Main");
-						forPersonsList.add(Long.parseLong(mainPersonVO.getId()));
+						forPersonsList.add(Long.parseLong(mainPersonVO.getKey()));
 					} else {
 						LogManager.getLogger().debug("Picked Spouse");
-						forPersonsList.add(Long.parseLong(matchSpouseVO.getId()));
+						forPersonsList.add(Long.parseLong(matchSpouseVO.getKey()));
 					}
 				}
 				treeGraphVO.getNodes().remove(matchSpouseVO);
 			} else if (!mainPersonVO.isHasContributed()) {
 				LogManager.getLogger().debug("No matched, hence Main");
-				forPersonsList.add(Long.parseLong(mainPersonVO.getId()));
+				forPersonsList.add(Long.parseLong(mainPersonVO.getKey()));
 			}
 			mainPersonInd++;
 		}
@@ -541,7 +541,7 @@ public class PersonRelationService {
 		
 		personsMap = new HashMap<String, PersonVO>();
 		for(PersonVO node : treeGraphVO.getNodes()) {
-			personsMap.put(node.getId(), node);
+			personsMap.put(node.getKey(), node);
 		}
 
 		maxLevel = 0;
@@ -570,7 +570,7 @@ public class PersonRelationService {
 		// Rest of the logic is a round-about way of setting X and Y :(
 		personsMap = new HashMap<String, PersonVO>();
 		for(PersonVO node : treeGraphVO.getNodes()) {
-			personsMap.put(node.getId(), node);
+			personsMap.put(node.getKey(), node);
 		}
 
 		maxLevel = 0;
@@ -638,11 +638,11 @@ public class PersonRelationService {
 		if(personsMap.containsKey(personId)) {
 			personVO = personsMap.get(personId);
 			if (toWrite) {
-				UtilFuncs.listSet(treeCsvRow, index, personVO.getLabel(), null);
+				UtilFuncs.listSet(treeCsvRow, index, personVO.getAttributes().getLabel(), null);
 			}
-			personVO.setY(treeCsvContents.indexOf(treeCsvRow));
-			personVO.setX(index);
-			LogManager.getLogger().debug(personVO.getId() + ":"  + personVO.getFirstName() + ":" + personVO.getY() + ":" + personVO.getX());
+			personVO.getAttributes().setY(treeCsvContents.indexOf(treeCsvRow));
+			personVO.getAttributes().setX(index);
+			LogManager.getLogger().debug(personVO.getKey() + ":"  + personVO.getFirstName() + ":" + personVO.getAttributes().getY() + ":" + personVO.getAttributes().getX());
 		} else {
 			throw new AppException("Application in inconsistent state?! PersonId: " + personId, null);
 			// UtilFuncs.listSet(treeCsvRow, index, personId, null);

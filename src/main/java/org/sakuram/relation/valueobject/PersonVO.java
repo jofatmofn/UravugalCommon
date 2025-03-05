@@ -3,27 +3,25 @@ package org.sakuram.relation.valueobject;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter @Setter
-@NoArgsConstructor
 public class PersonVO implements Comparable<PersonVO>{
 	
-	private String id;
-	private String label;
+	private String key;
+	private NodeAttributesVO attributes;
 	@JsonIgnore private String personLabel;
 	@JsonIgnore private String firstName;
 	@JsonIgnore private String gender;
-	private double size;
-	private String color;
-	private double x;
-	private double y;
 	@JsonIgnore private boolean hasContributed;
 	
+	public PersonVO() {
+		attributes = new NodeAttributesVO();
+	}
+	
 	public void determineLabel() {
-		label =  "(" + (id == null ? "" : id) + "/" + (gender == null ? "" : gender) + ")" + (firstName == null ? "" : firstName) +
-				(firstName == null || personLabel  == null ? "" : "/") + (personLabel == null ? "" : personLabel);
+		attributes.setLabel("(" + (key == null ? "" : key) + "/" + (gender == null ? "" : gender) + ")" + (firstName == null ? "" : firstName) +
+				(firstName == null || personLabel  == null ? "" : "/") + (personLabel == null ? "" : personLabel));
 	}
 
 	public void determineGender(String genderDvValue) {
@@ -31,6 +29,6 @@ public class PersonVO implements Comparable<PersonVO>{
 	}
 
 	public int compareTo(PersonVO personVO) {
-		return (this.getY() < personVO.getY() ? -1 : this.getY() > personVO.getY() ? 1 : this.getX() < personVO.getX() ? -1 : this.getX() == personVO.getX() ? 0 : 1);
+		return (attributes.getY() < personVO.getAttributes().getY() ? -1 : attributes.getY() > personVO.getAttributes().getY() ? 1 : attributes.getX() < personVO.getAttributes().getX() ? -1 : attributes.getX() == personVO.getAttributes().getX() ? 0 : 1);
 	}
 }
