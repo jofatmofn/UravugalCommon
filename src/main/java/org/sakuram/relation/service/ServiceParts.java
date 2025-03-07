@@ -33,7 +33,7 @@ public class ServiceParts {
 		personVOMap.put(person.getId(), personVO);
 		
 		personVO.setKey(String.valueOf(person.getId()));
-		personVO.getAttributes().setSize(5.0);
+		personVO.getAttributes().setSize(Constants.DEFAULT_NODE_SIZE);
 		personVO.getAttributes().setColor(Constants.DEFAULT_NODE_COLOR);
 		
 		for (AttributeValue attributeValue : person.getAttributeValueList()) {
@@ -70,8 +70,9 @@ public class ServiceParts {
     	relatedPerson1VO = new RelatedPerson1VO();
 		
 		relationVO.setKey(String.valueOf(relation.getId()));
-		relationVO.getAttributes().setSize(2.0);
+		relationVO.getAttributes().setSize(Constants.DEFAULT_EDGE_SIZE);
 		relationVO.getAttributes().setType(Constants.EDGE_TYPE_DIRECT_RELATION);
+		relationVO.getAttributes().setColor(Constants.DEFAULT_EDGE_COLOR);
 		if (relation.getPerson1().equals(startPerson)) {
 			relatedPerson1VO.person = relation.getPerson2();
 			otherPersonId = String.valueOf(relation.getPerson2().getId());

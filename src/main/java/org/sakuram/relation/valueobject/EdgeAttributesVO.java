@@ -9,5 +9,6 @@ import lombok.Setter;
 public class EdgeAttributesVO {
 	private String label;
 	private double size;
+	private String color;
 	private String type;
 }

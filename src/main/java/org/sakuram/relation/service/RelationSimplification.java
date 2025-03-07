@@ -73,8 +73,9 @@ public class RelationSimplification {
 						relationVO.setKey("S"+String.valueOf(simpleRelationInd));
 						relationVO.determineSource(simplifiedRelationVOList.get(ind1).getSource());
 						relationVO.determineTarget(simplifiedRelationVOList.get(ind1 + ind2 - 1).getTarget());
-						relationVO.getAttributes().setSize(2.0);
+						relationVO.getAttributes().setSize(Constants.DEFAULT_EDGE_SIZE);
 						relationVO.getAttributes().setType(Constants.EDGE_TYPE_SIMPLIFIED_RELATION);
+						relationVO.getAttributes().setColor(Constants.DEFAULT_EDGE_COLOR);
 						relName1Dv = domainValueRepository.findById(Long.valueOf(simplifiedRelation.person1ForPerson2DvId))
 								.orElseThrow(() -> new AppException("Invalid Dv Id ", null));
 						relName2Dv = domainValueRepository.findById(Long.valueOf(simplifiedRelation.person2ForPerson1DvId))
