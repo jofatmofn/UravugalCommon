@@ -77,7 +77,7 @@ public class AlgoService {
     	personVOMap = new HashMap<Long, PersonVO>();
     	relationVOList = new ArrayList<RelationVO>();
     	retrieveRelationsResponseVO.setEdges(relationVOList);
-    	patternBasedXY.init(ASCERTAIN_RELATION_GRAPH_PATTERN, 10, 10, 20);
+    	patternBasedXY.init(ASCERTAIN_RELATION_GRAPH_PATTERN, 10, 10, 1);
     	for (ind = 0; ind < relatedPersonList.size(); ind++) {
 			LogManager.getLogger().debug("Person: " + relatedPersonList.get(ind).getId());
     		personVO = serviceParts.addToPersonVOMap(personVOMap, relatedPersonList.get(ind));

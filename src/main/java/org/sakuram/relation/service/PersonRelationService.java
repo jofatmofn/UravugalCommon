@@ -134,8 +134,8 @@ public class PersonRelationService {
     	for (Person person : relatedPersonSet) {
     		personVO = serviceParts.addToPersonVOMap(personVOMap, person);
     		if (person.equals(startPerson)) {
-        		personVO.getAttributes().setX(10);
-        		personVO.getAttributes().setY(60);
+        		personVO.getAttributes().setX(1);
+        		personVO.getAttributes().setY(6);
     		}
     	}
     	
@@ -153,28 +153,28 @@ public class PersonRelationService {
 	        		System.out.println("Sibling ==> " + relation.getPerson2().getId());
 	        		attributeValue = fetchAttribute(null, relation, sequenceOfPerson2ForPerson1Dv).orElse(null);
 					siblingRelatedPerson3VOList.add(new RelatedPerson3VO(relation.getPerson2().getId(), attributeValue == null ? 0 : Double.valueOf(attributeValue.getAttributeValue())));
-			    	personVO.getAttributes().setY(90);
+			    	personVO.getAttributes().setY(9);
 				}
     		} else {
         		personVO = personVOMap.get(relatedPerson1VO.person.getId());
 	    		if (relatedPerson1VO.relationDvId == null) {
-	        		personVO.getAttributes().setX(Math.random() * 100);
-	        		personVO.getAttributes().setY(Math.random() * 100);
+	        		personVO.getAttributes().setX(Math.random() * 10);
+	        		personVO.getAttributes().setY(Math.random() * 10);
 	    		}
 	    		else {
 					switch(relatedPerson1VO.relationDvId) {
 					case Constants.RELATION_NAME_FATHER:
 						fatherRelatedPerson3VOList.add(new RelatedPerson3VO(relatedPerson1VO.person.getId(), relatedPerson1VO.seqNo));
-						personVO.getAttributes().setX(25);
+						personVO.getAttributes().setX(2.5);
 			    		break;
 					case Constants.RELATION_NAME_MOTHER:
 						motherRelatedPerson3VOList.add(new RelatedPerson3VO(relatedPerson1VO.person.getId(), relatedPerson1VO.seqNo));
-						personVO.getAttributes().setX(85);
+						personVO.getAttributes().setX(8.5);
 			    		break;
 					case Constants.RELATION_NAME_HUSBAND:
 					case Constants.RELATION_NAME_WIFE:
 						spouseRelatedPerson3VOList.add(new RelatedPerson3VO(relatedPerson1VO.person.getId(), relatedPerson1VO.seqNo));
-						personVO.getAttributes().setX(100);
+						personVO.getAttributes().setX(10);
 			    		break;
 					case Constants.RELATION_NAME_SON:
 					case Constants.RELATION_NAME_DAUGHTER:
@@ -187,33 +187,33 @@ public class PersonRelationService {
     	}
 
     	Collections.sort(fatherRelatedPerson3VOList);
-    	ind = 120;
+    	ind = 12;
     	for (RelatedPerson3VO relatedPerson3VO : fatherRelatedPerson3VOList) {
-    		ind -= 10;
+    		ind -= 1;
     		personVOMap.get(relatedPerson3VO.personId).getAttributes().setY(ind);
     	}
     	Collections.sort(motherRelatedPerson3VOList);
-    	ind = 120;
+    	ind = 12;
     	for (RelatedPerson3VO relatedPerson3VO : motherRelatedPerson3VOList) {
-    		ind -= 10;
+    		ind -= 1;
     		personVOMap.get(relatedPerson3VO.personId).getAttributes().setY(ind);
     	}
     	Collections.sort(spouseRelatedPerson3VOList);
-    	ind = 70;
+    	ind = 7;
     	for (RelatedPerson3VO relatedPerson3VO : spouseRelatedPerson3VOList) {
-    		ind -= 10;
+    		ind -= 1;
     		personVOMap.get(relatedPerson3VO.personId).getAttributes().setY(ind);
     	}
     	Collections.sort(childRelatedPerson3VOList);
     	ind = 0;
     	for (RelatedPerson3VO relatedPerson3VO : childRelatedPerson3VOList) {
-    		ind += 20;
+    		ind += 2;
     		personVOMap.get(relatedPerson3VO.personId).getAttributes().setX(ind);
     	}
     	Collections.sort(siblingRelatedPerson3VOList);
-    	ind = 50;
+    	ind = 5;
     	for (RelatedPerson3VO relatedPerson3VO : siblingRelatedPerson3VOList) {
-    		ind += 20;
+    		ind += 2;
     		personVOMap.get(relatedPerson3VO.personId).getAttributes().setX(ind);
     	}
     	
@@ -364,7 +364,7 @@ public class PersonRelationService {
 				    			seqAtLevel.set(level, sequence);
 								relatedPerson2VO.sequence = sequence;
 								relatedPersonVO.getAttributes().setX(sequence);
-								relatedPersonVO.getAttributes().setY(level);
+								relatedPersonVO.getAttributes().setY(-level);
 				    		}
 				    		LogManager.getLogger().debug("Added person: " + relatedPerson2VO.person.getId() + " at level " + relatedPerson2VO.level);
 
@@ -640,7 +640,7 @@ public class PersonRelationService {
 			if (toWrite) {
 				UtilFuncs.listSet(treeCsvRow, index, personVO.getAttributes().getLabel(), null);
 			}
-			personVO.getAttributes().setY(treeCsvContents.indexOf(treeCsvRow));
+			personVO.getAttributes().setY(-treeCsvContents.indexOf(treeCsvRow));
 			personVO.getAttributes().setX(index);
 			LogManager.getLogger().debug(personVO.getKey() + ":"  + personVO.getFirstName() + ":" + personVO.getAttributes().getY() + ":" + personVO.getAttributes().getX());
 		} else {
