@@ -1,5 +1,7 @@
 package org.sakuram.relation.util;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -38,6 +40,13 @@ public class Constants {
 	public static final long RELATION_ATTRIBUTE_DV_ID_SEQUENCE_OF_PERSON2_FOR_PERSON1 = 62;
 	public static final long RELATION_ATTRIBUTE_DV_ID_RELATION_SUB_TYPE = 36;
 	public static final long RELATION_ATTRIBUTE_DV_ID_YYYY_OF_RELATION_END = 351;
+	public static final long RELATION_ATTRIBUTE_DV_ID_IS_AUTO_GENERATED = 414;
+	public static final long OTHER_RELATION_TYPE_DV_ID_SIBLING = 408;
+	public static final long OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER = 409;
+	public static final long OTHER_RELATION_TYPE_DV_ID_COUSIN = 410;
+	public static final long OTHER_RELATION_VIA_DV_ID_FATHER = 411;
+	public static final long OTHER_RELATION_VIA_DV_ID_MOTHER = 412;
+	public static final long OTHER_RELATION_VIA_DV_ID_NOT_KNOWN = 413;
 	
 	public static final String RELATION_NAME_FATHER = "1";
 	public static final String RELATION_NAME_MOTHER = "2";
@@ -45,6 +54,9 @@ public class Constants {
 	public static final String RELATION_NAME_WIFE = "4";
 	public static final String RELATION_NAME_SON = "5";
 	public static final String RELATION_NAME_DAUGHTER = "6";
+	public static final List<String> RELATION_NAME_LIST_PARENT = Arrays.asList(RELATION_NAME_FATHER, RELATION_NAME_MOTHER);
+	public static final List<String> RELATION_NAME_LIST_SPOUSE = Arrays.asList(RELATION_NAME_HUSBAND, RELATION_NAME_WIFE);
+	public static final List<String> RELATION_NAME_LIST_CHILD = Arrays.asList(RELATION_NAME_SON, RELATION_NAME_DAUGHTER);
 	public static final String RELATION_NAME_BROTHER = "316";
 	public static final String RELATION_NAME_SISTER = "317";
 	public static final String RELATION_NAME_FATHER_IN_LAW = "318";
@@ -61,6 +73,7 @@ public class Constants {
 	public static final String RELATION_NAME_COUSIN_FEMALE = "331";
 	public static final String GENDER_NAME_MALE = "59";
 	public static final String GENDER_NAME_FEMALE = "60";
+	public static final String BOOL_TRUE = "41";
 	public static Map<String, String> RELATION_NAME_TO_ID_MAP = Stream.of(new String[][] {
 		  { "Father", "1" },
 		  { "Mother", "2" },

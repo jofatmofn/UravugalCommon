@@ -13,4 +13,11 @@ public class RelatedPersonsVO {
 	private Long sourceId;
 	private String excludeRelationIdCsv;
 	private String excludePersonIdCsv;
+	
+	public RelatedPersonsVO(long person1Id, long person2Id, String person1ForPerson2, Long sourceId) {
+		this.person1Id = person1Id;
+		this.person2Id = person2Id;
+		this.person1ForPerson2 = person1ForPerson2;
+		this.sourceId = sourceId;
+	}
 }

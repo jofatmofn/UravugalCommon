@@ -13,4 +13,9 @@ public class SaveAttributesRequestVO {
 	private Long sourceId;
 	private byte[] photo;
 
+	public SaveAttributesRequestVO(long entityId, List<AttributeValueVO> attributeValueVOList, Long sourceId) {
+		this.entityId = entityId;
+		this.attributeValueVOList = attributeValueVOList;
+		this.sourceId = sourceId;
+	}
 }

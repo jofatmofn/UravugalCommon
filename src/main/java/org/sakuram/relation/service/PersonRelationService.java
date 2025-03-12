@@ -19,6 +19,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.apache.logging.log4j.LogManager;
 import org.javatuples.Pair;
 import org.javatuples.Octet;
+import org.javatuples.Quintet;
 import org.sakuram.relation.bean.AttributeValue;
 import org.sakuram.relation.bean.DomainValue;
 import org.sakuram.relation.bean.Person;
@@ -45,6 +46,7 @@ import org.sakuram.relation.valueobject.PersonSearchCriteriaVO;
 import org.sakuram.relation.valueobject.PersonVO;
 import org.sakuram.relation.valueobject.SaveAttributesRequestVO;
 import org.sakuram.relation.valueobject.SaveAttributesResponseVO;
+import org.sakuram.relation.valueobject.SaveOtherRelationRequestVO;
 import org.sakuram.relation.valueobject.SearchResultsVO;
 import org.sakuram.relation.valueobject.RelatedPersonsVO;
 import org.sakuram.relation.valueobject.RelationVO;
@@ -471,7 +473,7 @@ public class PersonRelationService {
 		treeCsvContents = new ArrayList<List<Object>>();
 		treeGraphVO = retrieveRoots(retrieveRelationsRequestVO);
 		forPersonsList = new ArrayList<Long>();
-		requiredRelationTypesList = Arrays.asList(Constants.RELATION_NAME_HUSBAND, Constants.RELATION_NAME_WIFE);
+		requiredRelationTypesList = Constants.RELATION_NAME_LIST_SPOUSE;
 		mainPersonInd = 0;
 		while (mainPersonInd < treeGraphVO.getNodes().size()) {
 			mainPersonVO = treeGraphVO.getNodes().get(mainPersonInd);
@@ -718,7 +720,7 @@ public class PersonRelationService {
 	
 	public GraphVO retrieveRoots(RetrieveRelationsRequestVO retrieveRelationsRequestVO) {
     	retrieveRelationsRequestVO.setMaxDepth(Constants.EXPORT_TREE_MAX_DEPTH);
-    	retrieveRelationsRequestVO.setRequiredRelationsList(Arrays.asList(Constants.RELATION_NAME_FATHER, Constants.RELATION_NAME_MOTHER));
+    	retrieveRelationsRequestVO.setRequiredRelationsList(Constants.RELATION_NAME_LIST_PARENT);
 		return retrieveTree(retrieveRelationsRequestVO);
 	}
 	
@@ -959,6 +961,7 @@ public class PersonRelationService {
 		saveAttributesResponseVO = new SaveAttributesResponseVO();
 		saveAttributesResponseVO.setEntityId(person.getId());
 		saveAttributesResponseVO.setInsertedAttributeValueIdList(saveAttributeValue(saveAttributesRequestVO.getAttributeValueVOList(), person, null, source));
+		updateAttributeListInParentEntity(person, null);
     	return saveAttributesResponseVO;
     }
     
@@ -1001,9 +1004,21 @@ public class PersonRelationService {
 		saveAttributesResponseVO = new SaveAttributesResponseVO();
 		saveAttributesResponseVO.setEntityId(saveAttributesRequestVO.getEntityId());
 		saveAttributesResponseVO.setInsertedAttributeValueIdList(saveAttributeValue(saveAttributesRequestVO.getAttributeValueVOList(), null, relation, source));
+		updateAttributeListInParentEntity(null, relation);
     	return saveAttributesResponseVO;
     }
 
+    private void updateAttributeListInParentEntity(Person person, Relation relation) {
+    	// This method is required when the Child list in the Parent entity is used, after there are changes to the Child list.
+    	// The Database is fine, but the Java Bean has become out of sync with the DB
+    	
+    	if (person != null) {
+    		person.setAttributeValueList(attributeValueRepository.findByPerson(person));
+    	} else { // relation != null
+    		relation.setAttributeValueList(attributeValueRepository.findByRelation(relation));
+    	}
+    }
+    
     private List<Long> saveAttributeValue(List<AttributeValueVO> attributeValueVOList, Person person, Relation relation, Person source) {
     	AttributeValue attributeValue, insertedAttributeValue, preModifyAttributeValue;
     	List<Long> incomingAttributeValueWithIdList, insertedAttributeValueIdList;
@@ -1307,15 +1322,15 @@ public class PersonRelationService {
 			parentNamesSsv = "";
 			spouseNamesSsv = "";
 			childNamesSsv = "";
-    		for (Map.Entry<Person, AttributeValue> relativeAttributeEntry : retrieveRelativesAndAttributes(person, Arrays.asList(Constants.RELATION_NAME_FATHER, Constants.RELATION_NAME_MOTHER), Arrays.asList(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME))) {
+    		for (Map.Entry<Person, AttributeValue> relativeAttributeEntry : retrieveRelativesAndAttributes(person, Constants.RELATION_NAME_LIST_PARENT, Arrays.asList(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME))) {
     			parentNamesSsv += "/" + relativeAttributeEntry.getValue().getAvValue();
     		}
 
-    		for (Map.Entry<Person, AttributeValue> relativeAttributeEntry : retrieveRelativesAndAttributes(person, Arrays.asList(Constants.RELATION_NAME_HUSBAND, Constants.RELATION_NAME_WIFE), Arrays.asList(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME))) {
+    		for (Map.Entry<Person, AttributeValue> relativeAttributeEntry : retrieveRelativesAndAttributes(person, Constants.RELATION_NAME_LIST_SPOUSE, Arrays.asList(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME))) {
     			spouseNamesSsv += "/" + relativeAttributeEntry.getValue().getAvValue();
     		}
 
-    		for (Map.Entry<Person, AttributeValue> relativeAttributeEntry : retrieveRelativesAndAttributes(person, Arrays.asList(Constants.RELATION_NAME_SON, Constants.RELATION_NAME_DAUGHTER), Arrays.asList(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME))) {
+    		for (Map.Entry<Person, AttributeValue> relativeAttributeEntry : retrieveRelativesAndAttributes(person, Constants.RELATION_NAME_LIST_CHILD, Arrays.asList(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME))) {
     			childNamesSsv += "/" + relativeAttributeEntry.getValue().getAvValue();
     		}
 
@@ -1539,6 +1554,276 @@ public class PersonRelationService {
     	relationVOList = new ArrayList<RelationVO>();
 		serviceParts.addToRelationVOList(relationVOList, relation, null, false);
     	return relationVOList.get(0);
+    }
+    
+    public void saveOtherRelation(SaveOtherRelationRequestVO saveOtherRelationRequestVO) {
+    	Person source;
+    	
+    	if (relationRepository.findRelationGivenPersons(saveOtherRelationRequestVO.getPerson1Id(), saveOtherRelationRequestVO.getPerson2Id(), SecurityContext.getCurrentTenantId()) != null) {
+    		throw new AppException(saveOtherRelationRequestVO.getPerson1Id() + " and " + saveOtherRelationRequestVO.getPerson2Id() + " are already related DIRECTly.", null);
+    	}
+    	source = null;
+    	if (saveOtherRelationRequestVO.getSourceId() != null) {
+    		source = personRepository.findByIdAndTenant(saveOtherRelationRequestVO.getSourceId(), SecurityContext.getCurrentTenant())
+    				.orElseThrow(() -> new AppException("Invalid Source " + saveOtherRelationRequestVO.getSourceId(), null));
+    	}
+    	
+    	autoParents(saveOtherRelationRequestVO.getOtherRelationTypeDvId(), saveOtherRelationRequestVO.getPerson1Id(), saveOtherRelationRequestVO.getOtherRelationVia1DvId(), saveOtherRelationRequestVO.getPerson2Id(), saveOtherRelationRequestVO.getOtherRelationVia2DvId(), source, true);
+    }
+
+    private void autoParents(long otherRelationTypeDvId, long person1Id, long otherRelationVia1DvId, long person2Id, long otherRelationVia2DvId, Person source, boolean isFirst) {
+    	Person person1, person2;
+    	List<RelatedPerson1VO> relatedPerson1VOList11, relatedPerson1VOList12, relatedPerson1VOList21, relatedPerson1VOList22;
+    	long newPersonId, newRelationType, person1ParentId, person2ParentId;
+    	Long sourceId;
+    	Pair<Long, Long> parentTypePair;
+    	
+    	System.out.println("autoParents ==> " + otherRelationTypeDvId + "::" + person1Id + "::" + otherRelationVia1DvId + "::" + person2Id + "::" + otherRelationVia2DvId);
+    	sourceId = source == null ? null : source.getId();
+    	person1 = personRepository.findByIdAndTenant(person1Id, SecurityContext.getCurrentTenant())
+				.orElseThrow(() -> new AppException("Invalid Person Id " + person1Id, null));
+    	person2 = personRepository.findByIdAndTenant(person2Id, SecurityContext.getCurrentTenant())
+				.orElseThrow(() -> new AppException("Invalid Person Id " + person2Id, null));
+    	if (otherRelationTypeDvId == Constants.OTHER_RELATION_TYPE_DV_ID_SIBLING) {
+    		relatedPerson1VOList11 = retrieveRelatives(person1, Arrays.asList(Constants.RELATION_NAME_FATHER));
+    		relatedPerson1VOList12 = retrieveRelatives(person1, Arrays.asList(Constants.RELATION_NAME_MOTHER));
+    		relatedPerson1VOList21 = retrieveRelatives(person2, Arrays.asList(Constants.RELATION_NAME_FATHER));
+    		relatedPerson1VOList22 = retrieveRelatives(person2, Arrays.asList(Constants.RELATION_NAME_MOTHER));
+    		if (relatedPerson1VOList11.size() > 1 || relatedPerson1VOList12.size() > 1 || relatedPerson1VOList21.size() > 1 || relatedPerson1VOList22.size() > 1 ||
+    				(relatedPerson1VOList11.size() > 0 || relatedPerson1VOList12.size() > 0) && (relatedPerson1VOList21.size() > 0 || relatedPerson1VOList22.size() > 0)) {
+        		throw new AppException("Cannot automatically add required parents hierarchy. You have to manually establish this relation.", null);
+    		}
+    		if (relatedPerson1VOList11.size() == 0 && relatedPerson1VOList12.size() == 0 && relatedPerson1VOList21.size() == 0 && relatedPerson1VOList22.size() == 0) {
+    			newPersonId = savePersonAttributes(new SaveAttributesRequestVO(
+    					-1L,
+    					Arrays.asList(
+    							new AttributeValueVO(-1L, Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, "X"),
+    							new AttributeValueVO(-1L, Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, Constants.GENDER_NAME_MALE)
+    							),
+    					sourceId
+    					)).getEntityId();
+    			autoGenerateFatherRelation(person1Id, newPersonId, !isFirst, source);
+    			autoGenerateFatherRelation(person2Id, newPersonId, !isFirst, source);
+    		} else {
+    			if (relatedPerson1VOList11.size() == 1) { // Person1's father is the father of Person2
+        			saveRelation(new RelatedPersonsVO(
+        					relatedPerson1VOList11.get(0).person.getId(),
+        					person2Id,
+        					Constants.RELATION_NAME_FATHER,
+        					sourceId
+        					));
+	    		}
+    			if (relatedPerson1VOList12.size() == 1) { // Person1's mother is the mother of Person2
+        			saveRelation(new RelatedPersonsVO(
+        					relatedPerson1VOList12.get(0).person.getId(),
+        					person2Id,
+        					Constants.RELATION_NAME_MOTHER,
+        					sourceId
+        					));
+	    		}
+    			if (relatedPerson1VOList21.size() == 1) { // Person2's father is the father of Person1
+        			saveRelation(new RelatedPersonsVO(
+        					relatedPerson1VOList21.get(0).person.getId(),
+        					person1Id,
+        					Constants.RELATION_NAME_FATHER,
+        					sourceId
+        					));
+	    		}
+    			if (relatedPerson1VOList22.size() == 1) { // Person2's mother is the mother of Person1
+        			saveRelation(new RelatedPersonsVO(
+        					relatedPerson1VOList22.get(0).person.getId(),
+        					person1Id,
+        					Constants.RELATION_NAME_MOTHER,
+        					sourceId
+        					));
+	    		}
+    		}
+    	} else {	// otherRelationTypeDvId is COUSIN or COUSIN_BROTHER_SISTER
+    		parentTypePair = determineParentType(otherRelationTypeDvId, person1, otherRelationVia1DvId, person2, otherRelationVia2DvId);
+    		person1ParentId = getOrCreateParent(person1Id, parentTypePair.getValue0(), sourceId);
+    		person2ParentId = getOrCreateParent(person2Id, parentTypePair.getValue1(), sourceId);
+    		newRelationType = -1L;
+        	if (otherRelationTypeDvId == Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN && parentTypePair.getValue0().equals(parentTypePair.getValue1())) {
+        		newRelationType = Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN;
+        	} else if (otherRelationTypeDvId == Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN && !parentTypePair.getValue0().equals(parentTypePair.getValue1())) {
+        		newRelationType = Constants.OTHER_RELATION_TYPE_DV_ID_SIBLING;
+        	} else if (otherRelationTypeDvId == Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER && parentTypePair.getValue0().equals(parentTypePair.getValue1())) {
+        		newRelationType = Constants.OTHER_RELATION_TYPE_DV_ID_SIBLING;
+        	} else if (otherRelationTypeDvId == Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER && !parentTypePair.getValue0().equals(parentTypePair.getValue1())) {
+        		newRelationType = Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN;
+        	}
+    		autoParents(newRelationType, person1ParentId, Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN, person2ParentId, Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN, source, false);
+    	}
+    }
+
+    private void autoGenerateFatherRelation(long childPersonId, long fatherPersonId, boolean isAutoGenerated, Person source) {
+    	long relationId;
+    	Relation relation;
+    	
+    	relationId = Long.parseLong(saveRelation(new RelatedPersonsVO(
+    			fatherPersonId,
+    			childPersonId,
+				Constants.RELATION_NAME_FATHER,
+				source == null ? null : source.getId()
+				)).getKey());
+		if (isAutoGenerated) {
+			relation = relationRepository.findByIdAndTenant(relationId, SecurityContext.getCurrentTenant())
+    				.orElseThrow(() -> new AppException("Invalid Person Id " + relationId, null));
+			insertAttributeValue(
+					new AttributeValueVO(-1L, Constants.RELATION_ATTRIBUTE_DV_ID_IS_AUTO_GENERATED, Constants.BOOL_TRUE),
+					null,
+					relation,
+					source
+					);
+		}
+    }
+
+    private Pair<Long, Long> determineParentType(long otherRelationTypeDvId, Person person1, long otherRelationVia1DvId, Person person2, long otherRelationVia2DvId) {
+    	// Map NOT_KNOWN to one of FATHER or MOTHER
+    	long parentType1, parentType2;
+    	List<RelatedPerson1VO> relatedPerson1VOList11, relatedPerson1VOList12, relatedPerson1VOList21, relatedPerson1VOList22;
+    	Quintet<Long, Integer, Integer, Integer, Integer> parentTypeDtKey;
+    	
+    	parentType1 = otherRelationVia1DvId;
+    	parentType2 = otherRelationVia2DvId;
+    	if (parentType1 == Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN && parentType1 == Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN) {
+    		relatedPerson1VOList11 = retrieveRelatives(person1, Arrays.asList(Constants.RELATION_NAME_FATHER));
+    		relatedPerson1VOList12 = retrieveRelatives(person1, Arrays.asList(Constants.RELATION_NAME_MOTHER));
+    		relatedPerson1VOList21 = retrieveRelatives(person2, Arrays.asList(Constants.RELATION_NAME_FATHER));
+    		relatedPerson1VOList22 = retrieveRelatives(person2, Arrays.asList(Constants.RELATION_NAME_MOTHER));
+    		parentTypeDtKey = Quintet.with(otherRelationTypeDvId, relatedPerson1VOList11.size(), relatedPerson1VOList12.size(), relatedPerson1VOList21.size(), relatedPerson1VOList22.size());
+    		
+    		if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 0, 0, 0, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 0, 0, 0, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 0, 0, 1, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 0, 0, 1, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 0, 1, 0, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 0, 1, 0, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 0, 1, 1, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 0, 1, 1, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 1, 0, 0, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 1, 0, 0, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 1, 0, 1, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 1, 0, 1, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 1, 1, 0, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 1, 1, 0, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 1, 1, 1, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, 1, 1, 1, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 0, 0, 0, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 0, 0, 0, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 0, 0, 1, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 0, 0, 1, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 0, 1, 0, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 0, 1, 0, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 0, 1, 1, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 0, 1, 1, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 1, 0, 0, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 1, 0, 0, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 1, 0, 1, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 1, 0, 1, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 1, 1, 0, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 1, 1, 0, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 1, 1, 1, 0)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_MOTHER, Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		else if (parentTypeDtKey.equals(Quintet.with(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN, 1, 1, 1, 1)))
+        		return Pair.with(Constants.OTHER_RELATION_VIA_DV_ID_FATHER, Constants.OTHER_RELATION_VIA_DV_ID_MOTHER);
+    			
+    	} else if (parentType1 == Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN) {
+    		if (otherRelationTypeDvId == Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN) {
+    			parentType1 = (parentType2 == Constants.OTHER_RELATION_VIA_DV_ID_FATHER ?
+    					Constants.OTHER_RELATION_VIA_DV_ID_MOTHER : Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		} else {
+    			parentType1 = parentType2;
+    		}
+    	} else if (parentType2 == Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN) {
+    		if (otherRelationTypeDvId == Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN) {
+    			parentType2 = (parentType1 == Constants.OTHER_RELATION_VIA_DV_ID_FATHER ?
+    					Constants.OTHER_RELATION_VIA_DV_ID_MOTHER : Constants.OTHER_RELATION_VIA_DV_ID_FATHER);
+    		} else {
+    			parentType2 = parentType1;
+    		}
+    	}
+		return Pair.with(parentType1, parentType2);
+    }
+
+    private long getOrCreateParent(long childPersonId, long parentTypeDvId, Long sourceId) {
+    	List<RelatedPerson1VO> relatedPerson1VOList1, relatedPerson1VOList2;
+    	Person childPerson;
+    	long parentPersonId;
+    	
+    	childPerson = personRepository.findByIdAndTenant(childPersonId, SecurityContext.getCurrentTenant())
+				.orElseThrow(() -> new AppException("Invalid Person Id " + childPersonId, null));
+		relatedPerson1VOList1 = retrieveRelatives(childPerson, Arrays.asList(Constants.RELATION_NAME_FATHER));
+		relatedPerson1VOList2 = retrieveRelatives(childPerson, Arrays.asList(Constants.RELATION_NAME_MOTHER));
+		if (parentTypeDvId == Constants.OTHER_RELATION_VIA_DV_ID_FATHER && relatedPerson1VOList1.size() == 0) {
+			parentPersonId = savePersonAttributes(new SaveAttributesRequestVO(
+					-1L,
+					Arrays.asList(
+							new AttributeValueVO(-1L, Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, "X"),
+							new AttributeValueVO(-1L, Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, Constants.GENDER_NAME_MALE)
+							),
+					sourceId
+					)).getEntityId();
+			saveRelation(new RelatedPersonsVO(
+					parentPersonId,
+					childPersonId,
+					Constants.RELATION_NAME_FATHER,
+					sourceId
+					));
+			return parentPersonId;
+		} else if (parentTypeDvId == Constants.OTHER_RELATION_VIA_DV_ID_FATHER && relatedPerson1VOList1.size() == 1) {
+			return relatedPerson1VOList1.get(0).person.getId();
+		} else if (parentTypeDvId == Constants.OTHER_RELATION_VIA_DV_ID_MOTHER && relatedPerson1VOList2.size() == 0) {
+			parentPersonId = savePersonAttributes(new SaveAttributesRequestVO(
+					-1L,
+					Arrays.asList(
+							new AttributeValueVO(-1L, Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, "Y"),
+							new AttributeValueVO(-1L, Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, Constants.GENDER_NAME_FEMALE)
+							),
+					sourceId
+					)).getEntityId();
+			saveRelation(new RelatedPersonsVO(
+					parentPersonId,
+					childPersonId,
+					Constants.RELATION_NAME_MOTHER,
+					sourceId
+					));
+			return parentPersonId;
+		} else if (parentTypeDvId == Constants.OTHER_RELATION_VIA_DV_ID_MOTHER && relatedPerson1VOList2.size() == 1) {
+			return relatedPerson1VOList2.get(0).person.getId();
+		} else {
+    		throw new AppException("Cannot automatically add required parents hierarchy. You have to manually establish this relation.", null);
+		}
     }
     
     public void deleteRelation(long relationId) {

@@ -27,4 +27,9 @@ public class AttributeValueVO {
 		return translatedValue == null ? attributeValue : translatedValue;
 	}
 	
+	public AttributeValueVO(long id, long attributeDvId, String attributeValue) {
+		this.id = id;
+		this.attributeDvId = attributeDvId;
+		this.attributeValue = attributeValue;
+	}
 }
