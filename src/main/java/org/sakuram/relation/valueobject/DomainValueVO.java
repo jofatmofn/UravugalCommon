@@ -9,7 +9,7 @@ public class DomainValueVO {
 	private String category;	
 	private String value;
 	private String relationGroup;
-	private Boolean isInputAsAttribute;
+	private String attributeInUi;
 	private String repetitionType;
 	private String attributeDomain;
 	private Boolean isInputMandatory;

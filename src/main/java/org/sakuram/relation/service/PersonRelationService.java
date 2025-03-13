@@ -779,7 +779,7 @@ public class PersonRelationService {
     		
     		domainValueFlags.setDomainValue(domainValue);
     		domainValueVO.setRelationGroup(domainValueFlags.getRelationGroup());
-    		domainValueVO.setIsInputAsAttribute(domainValueFlags.getIsInputAsAttribute());
+    		domainValueVO.setAttributeInUi(domainValueFlags.getAttributeInUi());
     		domainValueVO.setRepetitionType(domainValueFlags.getRepetitionType());
     		domainValueVO.setAttributeDomain(domainValueFlags.getAttributeDomain());
     		domainValueVO.setIsInputMandatory(domainValueFlags.getIsInputMandatory());
@@ -915,7 +915,7 @@ public class PersonRelationService {
     	for(AttributeValue attributeValue : attributeValueList) {
     		
     		domainValueFlags.setDomainValue(attributeValue.getAttribute());
-    		if (domainValueFlags.getIsInputAsAttribute() && (!isPrivateAttributeValue(attributeValue, domainValueFlags.getPrivacyRestrictionType()) || !isPublicOnly)) {
+    		if (!domainValueFlags.getAttributeInUi().equals(Constants.FLAG_ATTRIBUTE_UI_INTERNAL) && (!isPrivateAttributeValue(attributeValue, domainValueFlags.getPrivacyRestrictionType()) || !isPublicOnly)) {
         		attributeValueVO = new AttributeValueVO();
         		attributeValueVOList.add(attributeValueVO);
         		attributeValueVO.setId(attributeValue.getId());
@@ -1102,7 +1102,7 @@ public class PersonRelationService {
 		if (toDeleteAttributeValueList != null) {	// Delete AV
 	    	for(AttributeValue toDeleteAttributeValue : toDeleteAttributeValueList) {
 	    		domainValueFlags.setDomainValue(toDeleteAttributeValue.getAttribute());
-	    		if (domainValueFlags.getIsInputAsAttribute() && !incomingAttributeValueWithIdList.contains(toDeleteAttributeValue.getId())) {
+	    		if (!domainValueFlags.getAttributeInUi().equals(Constants.FLAG_ATTRIBUTE_UI_INTERNAL) && !incomingAttributeValueWithIdList.contains(toDeleteAttributeValue.getId())) {
 	    			toDeleteAttributeValue.setDeleter(SecurityContext.getCurrentUser());
 	    			toDeleteAttributeValue.setDeletedAt(new Timestamp(System.currentTimeMillis()));
 					attributeValueRepository.save(toDeleteAttributeValue);
@@ -1568,17 +1568,20 @@ public class PersonRelationService {
     				.orElseThrow(() -> new AppException("Invalid Source " + saveOtherRelationRequestVO.getSourceId(), null));
     	}
     	
-    	autoParents(saveOtherRelationRequestVO.getOtherRelationTypeDvId(), saveOtherRelationRequestVO.getPerson1Id(), saveOtherRelationRequestVO.getOtherRelationVia1DvId(), saveOtherRelationRequestVO.getPerson2Id(), saveOtherRelationRequestVO.getOtherRelationVia2DvId(), source, true);
+    	autoParents(saveOtherRelationRequestVO.getOtherRelationTypeDvId(), saveOtherRelationRequestVO.getPerson1Id(), saveOtherRelationRequestVO.getOtherRelationVia1DvId(), saveOtherRelationRequestVO.getPerson2Id(), saveOtherRelationRequestVO.getOtherRelationVia2DvId(), source, 0);
     }
 
-    private void autoParents(long otherRelationTypeDvId, long person1Id, long otherRelationVia1DvId, long person2Id, long otherRelationVia2DvId, Person source, boolean isFirst) {
+    private void autoParents(long otherRelationTypeDvId, long person1Id, long otherRelationVia1DvId, long person2Id, long otherRelationVia2DvId, Person source, int recursionLevel) {
     	Person person1, person2;
     	List<RelatedPerson1VO> relatedPerson1VOList11, relatedPerson1VOList12, relatedPerson1VOList21, relatedPerson1VOList22;
     	long newPersonId, newRelationType, person1ParentId, person2ParentId;
     	Long sourceId;
     	Pair<Long, Long> parentTypePair;
     	
-    	System.out.println("autoParents ==> " + otherRelationTypeDvId + "::" + person1Id + "::" + otherRelationVia1DvId + "::" + person2Id + "::" + otherRelationVia2DvId);
+    	if (recursionLevel > 15) {
+    		throw new AppException("Too much hierarchy to handle.", null);
+    	}
+    	System.out.println("autoParents ==> " + recursionLevel + "::" + otherRelationTypeDvId + "::" + person1Id + "::" + otherRelationVia1DvId + "::" + person2Id + "::" + otherRelationVia2DvId);
     	sourceId = source == null ? null : source.getId();
     	person1 = personRepository.findByIdAndTenant(person1Id, SecurityContext.getCurrentTenant())
 				.orElseThrow(() -> new AppException("Invalid Person Id " + person1Id, null));
@@ -1589,9 +1592,19 @@ public class PersonRelationService {
     		relatedPerson1VOList12 = retrieveRelatives(person1, Arrays.asList(Constants.RELATION_NAME_MOTHER));
     		relatedPerson1VOList21 = retrieveRelatives(person2, Arrays.asList(Constants.RELATION_NAME_FATHER));
     		relatedPerson1VOList22 = retrieveRelatives(person2, Arrays.asList(Constants.RELATION_NAME_MOTHER));
-    		if (relatedPerson1VOList11.size() > 1 || relatedPerson1VOList12.size() > 1 || relatedPerson1VOList21.size() > 1 || relatedPerson1VOList22.size() > 1 ||
-    				(relatedPerson1VOList11.size() > 0 || relatedPerson1VOList12.size() > 0) && (relatedPerson1VOList21.size() > 0 || relatedPerson1VOList22.size() > 0)) {
-        		throw new AppException("Cannot automatically add required parents hierarchy. You have to manually establish this relation.", null);
+    		if (relatedPerson1VOList11.size() > 1 || relatedPerson1VOList12.size() > 1 || relatedPerson1VOList21.size() > 1 || relatedPerson1VOList22.size() > 1) {
+    			throw new AppException("Cannot automatically add required parents hierarchy. You have to manually establish this relation.", null);
+    		}
+    		if ((relatedPerson1VOList11.size() > 0 || relatedPerson1VOList12.size() > 0) && (relatedPerson1VOList21.size() > 0 || relatedPerson1VOList22.size() > 0)) {
+    			if (relatedPerson1VOList11.size() > 0 && relatedPerson1VOList21.size() > 0 && relatedPerson1VOList11.get(0).person.getId() == relatedPerson1VOList21.get(0).person.getId() ||
+    					relatedPerson1VOList12.size() > 0 && relatedPerson1VOList22.size() > 0 && relatedPerson1VOList12.get(0).person.getId() == relatedPerson1VOList22.get(0).person.getId()) {
+        			throw new AppException("The required relation seems to exist already.", null);
+    			} else if (recursionLevel == 0) {
+        			throw new AppException("Cannot automatically add required parents hierarchy. You have to manually establish this relation.", null);
+    			} else {
+	    			autoParents(Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER, person1Id, otherRelationVia1DvId, person2Id, otherRelationVia2DvId, source, recursionLevel);
+	    			return;
+    			}
     		}
     		if (relatedPerson1VOList11.size() == 0 && relatedPerson1VOList12.size() == 0 && relatedPerson1VOList21.size() == 0 && relatedPerson1VOList22.size() == 0) {
     			newPersonId = savePersonAttributes(new SaveAttributesRequestVO(
@@ -1602,40 +1615,20 @@ public class PersonRelationService {
     							),
     					sourceId
     					)).getEntityId();
-    			autoGenerateFatherRelation(person1Id, newPersonId, !isFirst, source);
-    			autoGenerateFatherRelation(person2Id, newPersonId, !isFirst, source);
+    			generateParentRelation(person1Id, newPersonId, Constants.RELATION_NAME_FATHER, recursionLevel>0, source);
+    			generateParentRelation(person2Id, newPersonId, Constants.RELATION_NAME_FATHER, recursionLevel>0, source);
     		} else {
     			if (relatedPerson1VOList11.size() == 1) { // Person1's father is the father of Person2
-        			saveRelation(new RelatedPersonsVO(
-        					relatedPerson1VOList11.get(0).person.getId(),
-        					person2Id,
-        					Constants.RELATION_NAME_FATHER,
-        					sourceId
-        					));
+        			generateParentRelation(person2Id, relatedPerson1VOList11.get(0).person.getId(), Constants.RELATION_NAME_FATHER, recursionLevel>0, source);
 	    		}
     			if (relatedPerson1VOList12.size() == 1) { // Person1's mother is the mother of Person2
-        			saveRelation(new RelatedPersonsVO(
-        					relatedPerson1VOList12.get(0).person.getId(),
-        					person2Id,
-        					Constants.RELATION_NAME_MOTHER,
-        					sourceId
-        					));
+        			generateParentRelation(person2Id, relatedPerson1VOList12.get(0).person.getId(), Constants.RELATION_NAME_MOTHER, recursionLevel>0, source);
 	    		}
     			if (relatedPerson1VOList21.size() == 1) { // Person2's father is the father of Person1
-        			saveRelation(new RelatedPersonsVO(
-        					relatedPerson1VOList21.get(0).person.getId(),
-        					person1Id,
-        					Constants.RELATION_NAME_FATHER,
-        					sourceId
-        					));
+        			generateParentRelation(person1Id, relatedPerson1VOList21.get(0).person.getId(), Constants.RELATION_NAME_FATHER, recursionLevel>0, source);
 	    		}
     			if (relatedPerson1VOList22.size() == 1) { // Person2's mother is the mother of Person1
-        			saveRelation(new RelatedPersonsVO(
-        					relatedPerson1VOList22.get(0).person.getId(),
-        					person1Id,
-        					Constants.RELATION_NAME_MOTHER,
-        					sourceId
-        					));
+    				generateParentRelation(person1Id, relatedPerson1VOList22.get(0).person.getId(), Constants.RELATION_NAME_MOTHER, recursionLevel>0, source);
 	    		}
     		}
     	} else {	// otherRelationTypeDvId is COUSIN or COUSIN_BROTHER_SISTER
@@ -1652,18 +1645,18 @@ public class PersonRelationService {
         	} else if (otherRelationTypeDvId == Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN_BROTHER_SISTER && !parentTypePair.getValue0().equals(parentTypePair.getValue1())) {
         		newRelationType = Constants.OTHER_RELATION_TYPE_DV_ID_COUSIN;
         	}
-    		autoParents(newRelationType, person1ParentId, Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN, person2ParentId, Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN, source, false);
+    		autoParents(newRelationType, person1ParentId, Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN, person2ParentId, Constants.OTHER_RELATION_VIA_DV_ID_NOT_KNOWN, source, ++recursionLevel);
     	}
     }
 
-    private void autoGenerateFatherRelation(long childPersonId, long fatherPersonId, boolean isAutoGenerated, Person source) {
+    private void generateParentRelation(long childPersonId, long fatherPersonId, String relationName, boolean isAutoGenerated, Person source) {
     	long relationId;
     	Relation relation;
     	
     	relationId = Long.parseLong(saveRelation(new RelatedPersonsVO(
     			fatherPersonId,
     			childPersonId,
-				Constants.RELATION_NAME_FATHER,
+    			relationName,
 				source == null ? null : source.getId()
 				)).getKey());
 		if (isAutoGenerated) {

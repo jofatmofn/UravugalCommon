@@ -8,8 +8,8 @@ import lombok.Setter;
 @Getter @Setter
 @NoArgsConstructor
 public class DomainValueFlags {
-	private String attributeDomain, repetitionType, validationJsRegEx, languageCode, relationGroup, privacyRestrictionType, scriptConversionType;
-	private Boolean isInputAsAttribute, isInputMandatory, isScriptConvertible;
+	private String attributeDomain, repetitionType, validationJsRegEx, languageCode, relationGroup, privacyRestrictionType, scriptConversionType, attributeInUi;
+	private Boolean isInputMandatory, isScriptConvertible;
 	private Integer searchResultColInd;
 	
 	public DomainValueFlags(DomainValue domainValue) {
@@ -24,7 +24,7 @@ public class DomainValueFlags {
 		validationJsRegEx = null;
 		languageCode = null;
 		relationGroup = null;
-		isInputAsAttribute = null;
+		attributeInUi = null;
 		isInputMandatory = null;
 		isScriptConvertible = null;
 		privacyRestrictionType = null;
@@ -44,7 +44,7 @@ public class DomainValueFlags {
 		} else if (domainValue.getCategory().equals(Constants.CATEGORY_PERSON_ATTRIBUTE) || domainValue.getCategory().equals(Constants.CATEGORY_RELATION_ATTRIBUTE) ||
 				domainValue.getCategory().equals(Constants.CATEGORY_ADDITIONAL_PERSON_ATTRIBUTE)) {
 			if (flagsArr.length > Constants.FLAG_POSITION_INPUT_AS_ATTRIBUTE) {
-				isInputAsAttribute = Boolean.valueOf(flagsArr[Constants.FLAG_POSITION_INPUT_AS_ATTRIBUTE]);    				
+				attributeInUi = flagsArr[Constants.FLAG_POSITION_INPUT_AS_ATTRIBUTE];
 			}
 			if (flagsArr.length > Constants.FLAG_POSITION_REPETITION) {
 				repetitionType = flagsArr[Constants.FLAG_POSITION_REPETITION];

@@ -102,6 +102,9 @@ public class Constants {
 	public static final String FLAG_ATTRIBUTE_DOMAIN_LANGUAGE = "Language";
 	public static final String FLAG_ATTRIBUTE_DOMAIN_CITY = "City";
 	public static final String FLAG_ATTRIBUTE_DOMAIN_COUNTRY = "Country";
+	public static final String FLAG_ATTRIBUTE_UI_INPUT = "INP";
+	public static final String FLAG_ATTRIBUTE_UI_INTERNAL = "INT";
+	public static final String FLAG_ATTRIBUTE_UI_DISPLAY = "DSP";
 	public static final String FLAG_ATTRIBUTE_REPETITION_NOT_ALLOWED = "NA";
 	public static final String FLAG_ATTRIBUTE_REPETITION_OVERLAPPING_ALLOWED = "OA";
 	public static final String FLAG_ATTRIBUTE_REPETITION_NON_OVERLAPPING_ALLOWED = "NOA";
