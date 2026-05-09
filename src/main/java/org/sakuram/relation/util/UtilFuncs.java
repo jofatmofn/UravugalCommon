@@ -1,6 +1,5 @@
 package org.sakuram.relation.util;
 
-import java.io.IOException;
 import java.sql.Date;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -67,6 +66,7 @@ public class UtilFuncs {
     	char[] inCharArray;
     	int inputLength;
     	Iterator<int[]> iterator;
+    	String normalisedWord;
     	
     	wordsList = new ArrayList<String>();
     	inputLength = inStr.length();
@@ -77,7 +77,10 @@ public class UtilFuncs {
 				// Skip current occurrence
 			} else if (inCharArray[i] == ' ' || inCharArray[i] == '.') {
 				if (sb.length() > 0) {
-					wordsList.add(normaliseWordLevel(sb.toString()));
+					normalisedWord = normaliseWordLevel(sb.toString());
+					if (normalisedWord.length() > 0) {
+						wordsList.add(normalisedWord);
+					}
 					sb = new StringBuilder(inputLength);
 				}
 			} else if (i > 0 && (inCharArray[i] == 'a' || inCharArray[i] == 'e' || inCharArray[i] == 'i' || inCharArray[i] == 'o'  || inCharArray[i] == 'u'  || inCharArray[i] == 'y')) {
@@ -119,7 +122,10 @@ public class UtilFuncs {
     		}
     	}
 		if (sb.length() > 0) {
-			wordsList.add(normaliseWordLevel(sb.toString()));
+			normalisedWord = normaliseWordLevel(sb.toString());
+			if (normalisedWord.length() > 0) {
+				wordsList.add(normalisedWord);
+			}
 		}
     	
     	outStrList = new ArrayList<String>();

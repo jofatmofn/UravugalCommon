@@ -164,6 +164,9 @@ public class AttributeValue {
 		    	sb.append("/");
 		    	sb.append(alternative);
 		    }
+		    if (sb.length() == 0) {
+		    	sb.append("/");
+		    }
 	    	sb.append("/");
 		    normalisedValue = sb.toString();
 	    }

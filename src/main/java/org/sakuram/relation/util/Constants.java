@@ -47,6 +47,8 @@ public class Constants {
 	public static final long OTHER_RELATION_VIA_DV_ID_FATHER = 411;
 	public static final long OTHER_RELATION_VIA_DV_ID_MOTHER = 412;
 	public static final long OTHER_RELATION_VIA_DV_ID_NOT_KNOWN = 413;
+	public static final long GENDER_DV_ID_MALE= 59;
+	public static final long GENDER_DV_ID_FEMALE = 60;
 	
 	public static final String RELATION_NAME_FATHER = "1";
 	public static final String RELATION_NAME_MOTHER = "2";
@@ -74,6 +76,8 @@ public class Constants {
 	public static final String GENDER_NAME_MALE = "59";
 	public static final String GENDER_NAME_FEMALE = "60";
 	public static final String BOOL_TRUE = "41";
+	public static final String GENDER_NAME_ACRONYM_MALE = "M";
+	public static final String GENDER_NAME_ACRONYM_FEMALE = "F";
 	public static Map<String, String> RELATION_NAME_TO_ID_MAP = Stream.of(new String[][] {
 		  { "Father", "1" },
 		  { "Mother", "2" },

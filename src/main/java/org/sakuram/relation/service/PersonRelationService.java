@@ -5,6 +5,7 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1249,16 +1250,15 @@ public class PersonRelationService {
     		}
 
     	}
-		querySB.append(" ORDER BY p.id;");	// TODO Order by some match score
+		querySB.append(" ORDER BY p.id;");
     	
     	personList = personRepository.executeDynamicQuery(querySB.toString());
     	
     	searchResultsVO = new SearchResultsVO();
-    	searchResultsVO.setQueryToDb(querySB.toString());
+    	searchResultsVO.setCountInDb(personList.size());
     	if (personList.size() == 0) {
     		return searchResultsVO;
     	}
-    	searchResultsVO.setCountInDb(personList.size());
     	
     	attributeVsColumnMap = new HashMap<Long, Integer>();
     	searchResultsList = new ArrayList<List<String>>(Constants.SEARCH_RESULTS_MAX_COUNT);
@@ -1352,6 +1352,116 @@ public class PersonRelationService {
     	return searchResultsVO;
     }
 
+    public Pair<List<Long>, String> searchPersonForDuplicate(Octet<Integer, Integer, Long, String, Long, List<String>, List<String>, List<String>> cellContentTuple) {
+    	StringBuilder querySB;
+    	List<Person> personList;
+    	int searchResultsCount;
+    	List<Long> searchResultsList;
+    	List<Pair<Long, Float>> duplicatePersonScoreList;
+    	
+    	querySB = new StringBuilder();
+    	querySB.append("SELECT * FROM person p LEFT OUTER JOIN tenant t ON p.tenant_fk = t.id WHERE p.overwritten_by_fk IS NULL AND p.deleter_fk IS NULL");
+    	// TODO: AOP to take care of the following if block
+    	if (SecurityContext.getCurrentTenantId() != null) {
+    		querySB.append(" AND p.tenant_fk = ");
+    		querySB.append(SecurityContext.getCurrentTenantId());
+    	}
+		if (cellContentTuple.getValue2() != null) {
+    		querySB.append(" AND p.id = ");
+    		querySB.append(cellContentTuple.getValue2());
+		}
+		if (cellContentTuple.getValue3() != null) {
+    		querySB.append(" AND (");
+    		for (long attributeDvId : Constants.PERSON_ATTRIBUTE_DV_IDS_ARRAY_NAME) {
+	    		querySB.append(buildQueryOneAv(attributeDvId, cellContentTuple.getValue3(), true, "person_fk = p.id"));
+	    		querySB.append(" OR ");
+    		}
+			querySB.delete(querySB.length() - 4, querySB.length());
+    		querySB.append(")");
+		}
+		if (cellContentTuple.getValue4() != null) {
+    		querySB.append(" AND (");
+    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, cellContentTuple.getValue4().toString(), true, "person_fk = p.id"));
+    		querySB.append(" OR NOT ");
+    		querySB.append(buildQueryOneAv(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, "@Spl: ", true, "person_fk = p.id"));
+    		querySB.append(")");
+		}
+    	
+    	personList = personRepository.executeDynamicQuery(querySB.toString());
+    	
+    	duplicatePersonScoreList = new ArrayList<>();
+    	for(Person person : personList) {
+    		
+    		duplicatePersonScoreList.add(Pair.with(person.getId(),
+    				getListMatchScore(person, Constants.RELATION_NAME_LIST_PARENT, cellContentTuple.getValue5()) +
+    	    		getListMatchScore(person, Constants.RELATION_NAME_LIST_SPOUSE, cellContentTuple.getValue6()) +
+    	    		getListMatchScore(person, Constants.RELATION_NAME_LIST_CHILD, cellContentTuple.getValue7()) / 3));
+    	}
+    	
+    	duplicatePersonScoreList.sort(Comparator.comparing(Pair<Long, Float>::getValue1).reversed());
+    	
+    	searchResultsList = new ArrayList<>(Constants.SEARCH_RESULTS_MAX_COUNT);
+    	searchResultsCount = 0;
+    	
+    	for (Pair<Long, Float> duplicatePersonScore : duplicatePersonScoreList) {
+    		searchResultsCount++;
+    		searchResultsList.add(duplicatePersonScore.getValue0());
+
+    		if (searchResultsCount == Constants.SEARCH_RESULTS_MAX_COUNT) {
+    			break;
+    		}
+    	}
+    	return Pair.with(searchResultsList, querySB.toString());
+    }
+
+    private float getListMatchScore(Person person, List<String> relationNameList, List<String> fromUserList) {
+    	List<List<String>> fromUserNormalisedList;
+    	List<String> fromDbList;
+    	AttributeValue attributeValue;
+    	DomainValue nameAttributeDv;
+    	int intersection;
+    	
+    	if (fromUserList.size() == 0) {
+    		return 1F;
+    	}
+		nameAttributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME)
+				.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME, null));
+		
+		fromUserNormalisedList = new ArrayList<>();
+		for (String fromUser : fromUserList) {
+	    	Person person2;
+			if (fromUser.chars().allMatch(Character::isDigit)) {
+				person2 = personRepository.findByIdAndTenant(Long.valueOf(fromUser), SecurityContext.getCurrentTenant())
+						.orElseThrow(() -> new AppException("Invalid Person Id " + fromUser, null));
+	    		attributeValue = fetchAttribute(person2, null, nameAttributeDv)
+	    				.orElseThrow(() -> new AppException("Invalid name for " + person2.getId(), null));
+				fromUserNormalisedList.add(UtilFuncs.normaliseForSearch(attributeValue.getAttributeValue()));
+			} else {
+				fromUserNormalisedList.add(UtilFuncs.normaliseForSearch(fromUser));
+			}
+		}
+		
+		intersection = 0;
+    	for (RelatedPerson1VO rP1VO : retrieveRelatives(person, relationNameList)) {
+    		attributeValue = fetchAttribute(rP1VO.person, null, nameAttributeDv)
+    				.orElseThrow(() -> new AppException("Invalid name for " + rP1VO.person.getId(), null));
+    		fromDbList = UtilFuncs.normaliseForSearch(attributeValue.getAttributeValue());
+    		for (List<String> fromUserNormalised : fromUserNormalisedList) {
+        		if (intersectionSize(fromDbList, fromUserNormalised) > 0) {
+        			intersection++;
+        			break;
+        		}
+    		}
+    	}
+    	return intersection / fromUserList.size();
+    }
+    
+    private int intersectionSize(List<String> list1, List<String> list2) {
+    	List<String> intersection = new ArrayList<>(list1);
+    	intersection.retainAll(list2);
+    	return intersection.size();
+    }
+    
 	private String buildQueryOneAv(long attributeDvId, String attributeValue, boolean isLenient, String avCriteria) {
 		return buildQueryOneAv(attributeDvId, attributeValue, null, isLenient, avCriteria);
 	}
@@ -1385,9 +1495,9 @@ public class PersonRelationService {
 					querySB.append("(");
 					for (String av : attributeValueList) {
 						for (String alternative : UtilFuncs.normaliseForSearch(av)) {
-							querySB.append(" av.normalised_value LIKE '%");
+							querySB.append(" av.normalised_value LIKE '%/");
 							querySB.append(alternative);
-							querySB.append("%' OR");
+							querySB.append("/%' OR");
 						}
 					}
 					querySB.delete(querySB.length() - 3, querySB.length());
@@ -1871,7 +1981,7 @@ public class PersonRelationService {
 
     public List<List<Object>> importPrData(String function, Long sourceId, Iterable<CSVRecord> csvRecords) {
     	// Two passes, one to validate and one to store into DB. This avoids gap in person/relation/attributeValue ids, caused by exception during storing.
-    	Pair<List<List<Object>>, List<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>>> preImportData;
+    	Pair<List<List<Object>>, List<Octet<Integer, Integer, Long, String, Long, List<String>, List<String>, List<String>>>> preImportData;
 		List<List<Object>> validationMessageList;
 		List<Object> validationMessage;
 		
@@ -1903,7 +2013,7 @@ public class PersonRelationService {
 		return validationMessageList;
     }
     
-    private Pair<List<List<Object>>, List<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>>> validatePrData(Iterable<CSVRecord> csvRecords) {
+    private Pair<List<List<Object>>, List<Octet<Integer, Integer, Long, String, Long, List<String>, List<String>, List<String>>>> validatePrData(Iterable<CSVRecord> csvRecords) {
 		List<List<Object>> validationMessageList;
 		List<Object> validationMessageHeader;
     	int cellCount, cellInd, lastCellInd, lastRecordLevel, rowInd;
@@ -1914,7 +2024,7 @@ public class PersonRelationService {
     	AttributeValue genderAv, nameAv;
     	DomainValue genderAttributeDv, nameAttributeDv, attributeValueDv;
     	Map<String, Pair<String, String>> referenceIdMap;
-    	List<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>> sheetContent;
+    	List<Octet<Integer, Integer, Long, String, Long, List<String>, List<String>, List<String>>> sheetContent;
     	
     	validationMessageList = new ArrayList<List<Object>>();
 		validationMessageHeader = new ArrayList<Object>(3);
@@ -1925,7 +2035,7 @@ public class PersonRelationService {
 		validationMessageHeader.add("Error");
 		
 		referenceIdMap = new HashMap<String, Pair<String, String>>();
-		sheetContent = new ArrayList<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>>();
+		sheetContent = new ArrayList<Octet<Integer, Integer, Long, String, Long, List<String>, List<String>, List<String>>>();
 		genderAttributeDv = domainValueRepository.findById(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER)
 				.orElseThrow(() -> new AppException("Invalid Attribute Dv Id " + Constants.PERSON_ATTRIBUTE_DV_ID_GENDER, null));
 	
@@ -2046,7 +2156,7 @@ public class PersonRelationService {
 					continue recordLoop;
 				}
 				
-				sheetContent.add(Octet.with(rowInd, cellInd, personId, currentName, currentGender, new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>()));
+				sheetContent.add(Octet.with(rowInd, cellInd, personId, currentName, currentGender.equals(Constants.GENDER_NAME_ACRONYM_MALE) ? Constants.GENDER_DV_ID_MALE : Constants.GENDER_DV_ID_FEMALE, new ArrayList<String>(), new ArrayList<String>(), new ArrayList<String>()));
     		}
     	}
 		return Pair.with(validationMessageList, sheetContent);
@@ -2064,18 +2174,16 @@ public class PersonRelationService {
     	
     }
 
-    private List<List<Object>> checkDuplicatesPrData(List<Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>>> sheetContent) {
+    private List<List<Object>> checkDuplicatesPrData(List<Octet<Integer, Integer, Long, String, Long, List<String>, List<String>, List<String>>> sheetContent) {
 		List<List<Object>> duplicatesContents;
 		List<Object> duplicatesRow;
 		int tmpInd, currInd;
-		List<AttributeValueVO> attributeValueVOList;
-		AttributeValueVO attributeValueVO;
-		SearchResultsVO searchResultsVO;
+		Pair<List<Long>, String> searchResults;
 		
 		// TODO: Using label, surName
 		duplicatesContents = new ArrayList<List<Object>>();
 		currInd = -1;
-		for (Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>> cellContentTuple : sheetContent) {
+		for (Octet<Integer, Integer, Long, String, Long, List<String>, List<String>, List<String>> cellContentTuple : sheetContent) {
 			// 0: row, 1: column, 2: personId, 3: name, 4: gender, 5: parents, 6: spouses, 7: children
 			currInd++;
 			if (cellContentTuple.getValue2() != null) {
@@ -2086,72 +2194,38 @@ public class PersonRelationService {
 				while (tmpInd > -1 && sheetContent.get(tmpInd).getValue1().compareTo(cellContentTuple.getValue1()) >= 0) tmpInd--; // Locate Parent
 				if (tmpInd > -1 && sheetContent.get(tmpInd).getValue1().equals(cellContentTuple.getValue1() - 1)) {
 					addNonDummy(cellContentTuple.getValue5(), sheetContent.get(tmpInd).getValue3()); // add to parents of current
-					if (sheetContent.get(tmpInd).getValue2() == null) {
-						addNonDummy(sheetContent.get(tmpInd).getValue7(), cellContentTuple.getValue3()); // add to children of parent
-					}
+					addNonDummy(sheetContent.get(tmpInd).getValue7(), sheetContent.get(tmpInd).getValue2() == null ? cellContentTuple.getValue3() : sheetContent.get(tmpInd).getValue2().toString()); // add to children of parent
 					tmpInd--;
 				}
 				if (tmpInd > -1 && sheetContent.get(tmpInd).getValue1().equals(cellContentTuple.getValue1() - 2)) {
 					addNonDummy(cellContentTuple.getValue5(), sheetContent.get(tmpInd).getValue3()); // add to parents of current
-					if (sheetContent.get(tmpInd).getValue2() == null) {
-						addNonDummy(sheetContent.get(tmpInd).getValue7(), cellContentTuple.getValue3()); // add to children of parent
-					}
+					addNonDummy(sheetContent.get(tmpInd).getValue7(), sheetContent.get(tmpInd).getValue2() == null ? cellContentTuple.getValue3() : sheetContent.get(tmpInd).getValue2().toString()); // add to children of parent
 				}
 			} else { // Columns: B, D, F, ...
 				tmpInd = currInd - 1; // Locate Spouse
 				if (tmpInd > -1 && sheetContent.get(tmpInd).getValue0().equals(cellContentTuple.getValue0())) {
 					addNonDummy(cellContentTuple.getValue6(), sheetContent.get(tmpInd).getValue3()); // add to spouses of current
-					if (sheetContent.get(tmpInd).getValue2() == null) {
-						addNonDummy(sheetContent.get(tmpInd).getValue6(), cellContentTuple.getValue3()); // add to spouses of spouse
-					}
+					addNonDummy(sheetContent.get(tmpInd).getValue6(), sheetContent.get(tmpInd).getValue2() == null ? cellContentTuple.getValue3() : sheetContent.get(tmpInd).getValue2().toString()); // add to spouses of spouse
 				}
 			}
-		}
-		
-		for (Octet<Integer, Integer, Long, String, String, List<String>, List<String>, List<String>> cellContentTuple : sheetContent) {
-			if (cellContentTuple.getValue2() != null || (cellContentTuple.getValue5().size() == 0 && cellContentTuple.getValue6().size() == 0 && cellContentTuple.getValue7().size() == 0)) {
+			
+			if (cellContentTuple.getValue5().size() == 0 && cellContentTuple.getValue6().size() == 0 && cellContentTuple.getValue7().size() == 0) {
 				continue;
 			}
-			attributeValueVOList = new ArrayList<AttributeValueVO>();
-			attributeValueVO = new AttributeValueVO();
-			attributeValueVOList.add(attributeValueVO);
-			attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_FIRST_NAME);
-			attributeValueVO.setAttributeValue(cellContentTuple.getValue3());
-			/* TODO GENDER attributeValueVO = new AttributeValueVO();
-			attributeValueVOList.add(attributeValueVO);
-			attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_GENDER);
-			attributeValueVO.setAttributeName(cellContentTuple.getValue4()); After converting from "M", "F" to 59, 60 */
-			if (cellContentTuple.getValue5().size() > 0) {
-				attributeValueVO = new AttributeValueVO();
-				attributeValueVOList.add(attributeValueVO);
-				attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_PARENTS);
-				attributeValueVO.setAttributeValueList(cellContentTuple.getValue5());
-			}
-			if (cellContentTuple.getValue6().size() > 0) {
-				attributeValueVO = new AttributeValueVO();
-				attributeValueVOList.add(attributeValueVO);
-				attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_SPOUSES);
-				attributeValueVO.setAttributeValueList(cellContentTuple.getValue6());
-			}
-			if (cellContentTuple.getValue7().size() > 0) {
-				attributeValueVO = new AttributeValueVO();
-				attributeValueVOList.add(attributeValueVO);
-				attributeValueVO.setAttributeDvId(Constants.PERSON_ATTRIBUTE_DV_ID_CHILDREN);
-				attributeValueVO.setAttributeValueList(cellContentTuple.getValue7());
-			}
-			searchResultsVO = searchPerson(new PersonSearchCriteriaVO(true, attributeValueVOList));
-			if (searchResultsVO.getResultsList() != null && searchResultsVO.getResultsList().size() < 10) {
+			
+			searchResults = searchPersonForDuplicate(cellContentTuple);
+			if (searchResults.getValue0() != null && searchResults.getValue0().size() > 0) {
 				if (duplicatesContents.size() < cellContentTuple.getValue0() + 1) {
 					duplicatesRow = new ArrayList<Object>();
 					UtilFuncs.listSet(duplicatesContents, cellContentTuple.getValue0().floatValue(), duplicatesRow, new ArrayList<Object>());
 				} else {
 					duplicatesRow = duplicatesContents.get(cellContentTuple.getValue0());
 				}
-				UtilFuncs.listSet(duplicatesRow, cellContentTuple.getValue1().floatValue(), searchResultsVO.getResultsList().get(1).get(0), null);
-				UtilFuncs.listSet(duplicatesRow, cellContentTuple.getValue1().floatValue() + 2, searchResultsVO.getQueryToDb(), null);
+				UtilFuncs.listSet(duplicatesRow, cellContentTuple.getValue1().floatValue(), searchResults.getValue0().stream().map(String::valueOf).collect(Collectors.joining("/")), null);
+				UtilFuncs.listSet(duplicatesRow, cellContentTuple.getValue1().floatValue() + 2, searchResults.getValue1(), null);
 			}
-			
 		}
+		
     	return duplicatesContents;
     }
     
